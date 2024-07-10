@@ -40,7 +40,7 @@ class Lv1 extends Phaser.Scene
 
         // Controls whether the player can make a move or not
         this.canMove = false;
-        this.isFilling = false;
+        this.isFilling = true;
 
         // get the width and height of tiles
         let blueTileTexture = this.textures.get('blue').getSourceImage();
@@ -82,7 +82,7 @@ class Lv1 extends Phaser.Scene
         this.initTiles();
 
         //After done spawning tiles, we check if there are matches
-        this.time.delayedCall(this.durationFill/1.2, function() {
+        this.time.delayedCall(this.durationFill, function() {
             this.checkMatch();
         }, null, this);
 
@@ -150,10 +150,6 @@ class Lv1 extends Phaser.Scene
             this.tileDown(tile)
         }, this);
 
-        this.time.delayedCall(this.durationFill, function() {
-            this.isFilling = false;
-        }, null, this);
-
         return tile;
     }
 
@@ -191,7 +187,7 @@ class Lv1 extends Phaser.Scene
                 //If the user has dragged an entire tiles width or height in the x or y direction
                 //trigger a tile swap
                 //if((Math.abs(difY) == 1 && difX == 0) || (Math.abs(difX) == 1 && difY == 0))
-                if((Math.abs(Math.floor(difY)) == 1 && Math.floor(difX) == 0) || (Math.abs(Math.floor(difX)) == 1 && Math.floor(difY) == 0))
+                if(((Math.abs(Math.floor(difY)) == 1 && Math.floor(difX) == 0) || (Math.abs(Math.floor(difX)) == 1 && Math.floor(difY) == 0)) && !this.isFilling)
                 {
                     //Prevent the player from making more moves whilst checking is in progress
                     this.canMove = false;
@@ -259,7 +255,6 @@ class Lv1 extends Phaser.Scene
         //Call the getMatches function to check for spots where there is
         //a run of three or more tiles in a row
         var matches = this.getMatches(this.tileGrid);
-        //console.log(matches);
         
         //If there are matches, remove them
         if(matches.length > 0)
@@ -270,7 +265,7 @@ class Lv1 extends Phaser.Scene
             //Move the tiles currently on the board into their new positions
             this.resetTile();
 
-            //Fill the board with new tiles wherever there is an empty spot
+            //Fill the board with new tiles wherever there is an empty spot, turn on isFilling
             this.fillTile();
 
             //Trigger the tileUp event to reset the active tiles
@@ -288,18 +283,18 @@ class Lv1 extends Phaser.Scene
             //No match so just swap the tiles back to their original position and reset
             this.swapTiles();
 
-            // only when we are done running the resetTile and filling function can we make another move
-            if (this.isFilling)
+            // if the grid isn't in filling session, player can make a move right after the swapping is done
+            if (!this.isFilling)
             {
-                this.time.delayedCall(this.durationFill, function(){
+                this.time.delayedCall(this.durationSwap, function(){
                     this.tileUp();
                     this.canMove = true;
                 }, null, this);
             }
-            else  // if the grid is not in the filling session then we can move after the tiles are done swapping
+            else    // if the grid is in filling session, isFilling will be turned off after the last fill tween is done
             {
-                this.time.delayedCall(this.durationSwap, function(){
-                    this.tileUp();
+                this.time.delayedCall(this.durationFill - this.durationCheckMatchAgain, function(){
+                    this.isFilling = false;
                     this.canMove = true;
                 }, null, this);
             }
@@ -331,7 +326,6 @@ class Lv1 extends Phaser.Scene
                 {
                     if (tileGrid[i][j] && tileGrid[i][j + 1] && tileGrid[i][j + 2]) // check 3 tiles next to each other
                     {
-                        //console.log(tileGrid[i][j].tileType);
                         if (tileGrid[i][j].tileType == tileGrid[i][j+1].tileType && tileGrid[i][j+1].tileType == tileGrid[i][j+2].tileType) // match 3
                         {
                             // we push more in if we already have a match-3 (the snippet below this snippet) but there is a match-4 or match-5...
@@ -503,6 +497,8 @@ class Lv1 extends Phaser.Scene
 
     fillTile()
     {
+        this.isFilling = true;
+
         //Check for blank spaces in the grid and add new tiles at that position
         for(var i = 0; i < this.levelHeight; i++)
         {
