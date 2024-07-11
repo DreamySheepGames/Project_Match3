@@ -8,17 +8,20 @@ class Lv1 extends Phaser.Scene
     create()
     {
         // set tile dimension
-        this.levelHeight = 8;
+        this.levelHeight = 16;                              // only the bottom half of the tile grid is seen and interactable
         this.levelLength = 16;
 
         // set tile postition
         this.leftMargin = 200;
-        this.topMargin = 100;
+        this.topMargin = -400;
 
         // the size of the gems
-        this.gemSize = 0.88;
+        this.gemSize = 0.9;
+        
+        // Gem drop tween ease
+        this.dropTweenEase = 'Bounce.easeOut'
 
-        // set time duration for actions
+        // set time duration for actions and tweening
         this.durationFill = 1200;                           // the time it takes to fill the tile grid
         this.durationSwap = 100;                            // the time it takes to swap 2 gems' position
         this.durationCheckMatch = 200;                      // the time it takes to check for a match-3 after swapping so we can remove the gems
@@ -26,13 +29,17 @@ class Lv1 extends Phaser.Scene
 
         this.durationTileUp = 50;           // the time it takes to reset the activated gems (the gems we clicked on) to null , I don't recommend modifying this value
 
+        this.halfRows = Math.ceil(this.levelHeight / 2);
+
+
+        //background
+        this.background = this.add.image(config.width/2, config.height/2, 'background1');
+        this.background.setOrigin(0.5, 0.5);
+        this.background.setScale(1.6);
+
         // Declare assets that will be used as tiles
         this.tileTypes = ['blue', 'green', 'red', 'purple', 'cyan', 'yellow'];
         this.score = 0;
-        this.spacing = 1.2
-
-        // Gem drop tween ease
-        this.dropTweenEase = 'Bounce.easeOut'
 
         // Keep track which tiles the user is trying to swap
         this.activeTile1 = null;
@@ -166,6 +173,8 @@ class Lv1 extends Phaser.Scene
 
     update()
     {
+        this.disableTiles();
+
         //The user is currently dragging from a tile, so let's see if they have dragged
         //over the top of an adjacent tile
         if (this.activeTile1 && !this.activeTile2)
@@ -313,8 +322,8 @@ class Lv1 extends Phaser.Scene
         var matches = [];
         var groups = [];
 
-        //Check for horizontal matches
-        for (var i = 0; i < tileGrid.length; i++)
+        //Check for horizontal matches, we only need to check from half row down to bottom row
+        for (var i = tileGrid.length - this.halfRows - 1; i < tileGrid.length; i++)
         {
             var tempArr = tileGrid[i];
             groups = [];
@@ -363,8 +372,8 @@ class Lv1 extends Phaser.Scene
             if (groups.length > 0) matches.push(groups);
         }
 
-        //Check for vertical matches
-        for (j = 0; j < tileGrid.length; j++)
+        //Check for vertical matches, we also need to check from half row down to bottom row
+        for (j = tileGrid.length - this.halfRows - 1; j < tileGrid.length; j++)
         {
             var tempArr = tileGrid[j];
             groups = [];
@@ -533,5 +542,37 @@ class Lv1 extends Phaser.Scene
         // 1 gem = 3 points
         this.score += array.length * 3;
         this.scoreLabel.text = this.score;
+    }
+
+    // this function is to make the drop gem look more stable
+    // we divide the tileGrid by two half, the half down is where player interact with the grid
+    // and the half up is where the gems are spawn
+    // this function to make this function works properly we also need to modify the get matches function
+    disableTiles()
+    {
+        for (var row = 0; row < this.levelHeight; row++) 
+        {
+            for (var column = 0; column < this.tileGrid[row].length; column++) 
+            {
+                var tile = this.tileGrid[row][column];
+
+                // Check if the row is lower (i.e., above) than halfRows
+                if (row < this.halfRows) 
+                {
+                    // Make tile invisible
+                    // if (tile) 
+                    // {
+                    tile.visible = false;
+                    tile.disableInteractive();
+                    //}
+                    
+                }
+                else 
+                {
+                    tile.setInteractive();
+                    tile.visible = true;
+                }
+            }
+        }
     }
 }
