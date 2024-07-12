@@ -1,4 +1,4 @@
-class Lv1 extends Phaser.Scene
+class LevelMaker extends Phaser.Scene
 {
     constructor()
     {
@@ -19,10 +19,10 @@ class Lv1 extends Phaser.Scene
         this.gemSize = 0.9;
         
         // Gem drop tween ease
-        this.dropTweenEase = 'Bounce.easeOut'
+        this.dropTweenEase = 'Cubic.easeOut';
 
         // set time duration for actions and tweening
-        this.durationFill = 1200;                           // the time it takes to fill the tile grid
+        this.durationFill = 700;                           // the time it takes to fill the tile grid
         this.durationSwap = 100;                            // the time it takes to swap 2 gems' position
         this.durationCheckMatch = 200;                      // the time it takes to check for a match-3 after swapping so we can remove the gems
         this.durationCheckMatchAgain = 500;                 // the time it takes to check for a match-3 again after removing the gems
@@ -56,6 +56,10 @@ class Lv1 extends Phaser.Scene
         // Controls whether the player can make a move or not
         this.canMove = false;
         this.isFilling = true;
+
+        // destroyTile helper
+        this.horizontalTile = null;
+        this.verticalTile = null;
 
         // get the width and height of tiles
         let blueTileTexture = this.textures.get('blue').getSourceImage();
@@ -504,81 +508,33 @@ class Lv1 extends Phaser.Scene
                         // if destroy 4 gems, the gem player clicked will turn to another mode (destroy row/column/color)
                         if (tile == this.activeTile2)
                         {
-                            if (tempArr.length == 4)
-                            {
-                                if (k == 0)
-                                {
-                                    tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
-                                }
-                                else
-                                {
-                                    tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
-                                }
-
-                                tile.setTint(0xCCCCCC); // This makes the tile darker
-                            }
-
-                            // check to turn tile to cross mode
-                            var horizontalMatches = this.flatten(matches[0]);
-                            var verticalMatches = this.flatten(matches[1]);
-
-                            if (horizontalMatches.includes(tile) && verticalMatches.includes(tile))
-                            {
-                                tile.tileMode = this.tileMode[4];
-                                tile.setTint(0xCCCCCC); // This makes the tile darker
-                            }
-
-                            if (tempArr.length >= 5)
-                            {
-                                tile.tileMode = this.tileMode[3];       // destroy color mode
-                                tile.setTint(0xCCCCCC); // This makes the tile darker
-                            }
+                            this.changeTileMode(tile, tempArr, matches, k);
                         }
 
                         if (tile == this.activeTile1)
                         {
-                            if (tempArr.length == 4)
-                            {
-                                if (k == 0)
-                                {
-                                    tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
-                                    tile.setTint(0xCCCCCC); // This makes the tile darker
-                                }
-                                else
-                                {
-                                    tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
-                                    tile.setTint(0xCCCCCC); // This makes the tile darker
-                                }
-                                tile.setTint(0xCCCCCC); // This makes the tile darker
-                            }
+                            this.changeTileMode(tile, tempArr, matches, k);
+                        }
 
-                            // check to turn tile to cross mode
-                            var horizontalMatches = this.flatten(matches[0]);
-                            var verticalMatches = this.flatten(matches[1]);
-
-                            if (horizontalMatches.includes(tile) && verticalMatches.includes(tile))
-                            {
-                                tile.tileMode = this.tileMode[4];
-                                tile.setTint(0xCCCCCC); // This makes the tile darker
-                            }
-
-                            if (tempArr.length >= 5)
-                            {
-                                tile.tileMode = this.tileMode[3];       // destroy color mode
-                                tile.setTint(0xCCCCCC); // This makes the tile darker
-                            }
+                        // if there are special matches without player's interaction
+                        // the first tile's mode in the matches[] is changed
+                        if ((!this.activeTile1 || !this.activeTile2) && tile == tempArr[0])
+                        {
+                            this.changeTileMode(tile, tempArr, matches, k);
                         }
                     
                         //Find where this tile lives in the theoretical grid
                         var tilePos = this.getTilePos(this.tileGrid, tile);
                     
                         //remove the tiles that is normal mode and not player clicked on, or the ones that is clicked on but stay normal after matching
+                        // this is where we need the activate function
                         if ((tile != this.activeTile2 && tile.tileMode == this.tileMode[0]) || (tile == this.activeTile2 && tile.tileMode == this.tileMode[0])
                         || (tile != this.activeTile1 && tile.tileMode == this.tileMode[0]) || (tile == this.activeTile2 && tile.tileMode == this.tileMode[0]))
                         {
                             //Remove the tile from the screen
                             this.tiles.remove(tile);
-                            tile.destroy();
+                            //tile.destroy();
+                            this.destroyTile(tile);
                         
                             //Remove the tile from the theoretical grid
                             if(tilePos.x != -1 && tilePos.y != -1)
@@ -591,6 +547,38 @@ class Lv1 extends Phaser.Scene
                     //scoring
                     this.incrementScore(tempArr);
                 }
+        }
+    }
+
+    changeTileMode(tile, tempArr, matches, k)
+    {
+        if (tempArr.length == 4)
+        {
+            if (k == 0)
+            {
+                tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
+            }
+            else
+            {
+                tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
+            }
+            tile.setTint(0xCCCCCC); // This makes the tile darker
+        }
+
+        // check to turn tile to cross mode
+        var horizontalMatches = this.flatten(matches[0]);
+        var verticalMatches = this.flatten(matches[1]);
+
+        if (horizontalMatches.includes(tile) && verticalMatches.includes(tile))
+        {
+            tile.tileMode = this.tileMode[4];
+            tile.setTint(0x787878); // This makes the tile darker
+        }
+
+        if (tempArr.length >= 5)
+        {
+            tile.tileMode = this.tileMode[3];       // destroy color mode
+            tile.setTint(0x000000); // This makes the tile darker
         }
     }
 
@@ -742,8 +730,13 @@ class Lv1 extends Phaser.Scene
             var tileToRemove = this.tileGrid[row][tilePos.x];
 
             // remove from screen
-            if (tileToRemove) {
-                tileToRemove.destroy();
+            if (tileToRemove) 
+            {
+                if (tileToRemove == tile) 
+                    tileToRemove.destroy();
+                else
+                    this.destroyTile(tileToRemove);
+
                 destroyCount++;
                 this.tiles.remove(tileToRemove);
             };
@@ -767,11 +760,17 @@ class Lv1 extends Phaser.Scene
             var tileToRemove = this.tileGrid[tilePos.y][column];
 
             // remove from screen
-            if (tileToRemove) {
-                tileToRemove.destroy();
+            if (tileToRemove) 
+            {
+                // if the current tile is the special tile we passed into this func
+                if (tileToRemove == tile) 
+                    tileToRemove.destroy();
+                else
+                    this.destroyTile(tileToRemove);
+
                 destroyCount++;
                 this.tiles.remove(tileToRemove);
-            };
+            }
 
             // remove from grid
             this.tileGrid[tilePos.y][column] = null;
@@ -784,25 +783,34 @@ class Lv1 extends Phaser.Scene
     destroyTilesOfSameType(colorTile, tile) {
         var destroyCount = 0;
     
-        for (var row = this.levelHeight - this.halfRows; row < this.levelHeight; row++) {
-            for (var column = 0; column < this.tileGrid[row].length; column++) {
+        for (var row = this.levelHeight - this.halfRows; row < this.levelHeight; row++) 
+        {
+            for (var column = 0; column < this.tileGrid[row].length; column++) 
+            {
                 var tileToRemove = this.tileGrid[row][column];
     
+                // destroy the special tile that we passed into this func
                 if (tileToRemove == colorTile)
                 {
                     tileToRemove.destroy();
+                    
                     destroyCount++;
                     this.tiles.remove(tileToRemove);
                     this.tileGrid[row][column] = null;
                 }
 
-                if (tileToRemove && tileToRemove.tileType == tile.tileType) {
-                    tileToRemove.destroy();
+                // destroy the tiles that has the same color
+                if (tileToRemove && tileToRemove.tileType == tile.tileType) 
+                {
+                    if (tileToRemove == tile) 
+                        tileToRemove.destroy();
+                    else
+                        this.destroyTile(tileToRemove);
+
                     destroyCount++;
                     this.tiles.remove(tileToRemove);
                     this.tileGrid[row][column] = null;
                 }
-
             }
         }
     
@@ -828,7 +836,11 @@ class Lv1 extends Phaser.Scene
             var tileToRemove = this.tileGrid[tilePos.y][column];
             if (tileToRemove)
             {
-                tileToRemove.destroy();
+                if (tileToRemove == tile) 
+                    tileToRemove.destroy();
+                else
+                    this.destroyTile(tileToRemove);
+
                 this.tiles.remove(tileToRemove);
                 this.tileGrid[tilePos.y][column] = null;
                 destroyedTiles.push(tileToRemove);
@@ -844,7 +856,11 @@ class Lv1 extends Phaser.Scene
             // Ensure we don't re-destroy already destroyed tiles
             if (tileToRemove && !destroyedTiles.includes(tileToRemove)) 
             { 
-                tileToRemove.destroy();
+                if (tileToRemove == tile) 
+                    tileToRemove.destroy();
+                else
+                    this.destroyTile(tileToRemove);
+
                 this.tiles.remove(tileToRemove);
                 this.tileGrid[row][tilePos.x] = null;
                 destroyedTiles.push(tileToRemove);
@@ -855,5 +871,50 @@ class Lv1 extends Phaser.Scene
         // Increment score for destroyed tiles
         var tempArr = new Array(destroyCount).fill(null);
         this.incrementScore(tempArr);
+    }
+
+    // activate tile's mode when destroyed
+    destroyTile(tile)
+    {
+        // destroy tile based on its mode
+        switch(tile.tileMode) 
+        {
+            case 'normal':
+                tile.destroy(tile);
+                break;
+
+            case 'horizontal':
+                this.horizontalTile = tile;
+                this.removeRow(tile);
+                break;
+
+            case 'vertical':
+                this.verticalTile = tile;
+                this.removeColumn(tile);
+                break;
+            
+            case 'color':
+                // if tile.x == horTile then remove
+                var horPos = this.getTilePos(this.tileGrid, this.horizontalTile);
+                var verPos = this.getTilePos(this.tileGrid, this.verticalTile);
+                var curTilePos = this.getTilePos(this.tileGrid, tile);
+                
+                if (curTilePos.x == horPos.x)
+                    this.destroyTilesOfSameType(tile, this.horizontalTile);
+                else
+                {
+                    if (curTilePos.y == verPos.y)
+                        this.destroyTilesOfSameType(tile, this.verticalTile);
+                }
+
+                this.horizontalTile = null;
+                this.verticalTile = null;
+
+                break;
+
+            case 'cross':
+                this.destroyCross(tile);
+                break;
+        }
     }
 }
