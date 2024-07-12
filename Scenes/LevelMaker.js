@@ -503,7 +503,11 @@ class LevelMaker extends Phaser.Scene
                     for(var j = 0; j < tempArr.length; j++)
                     {
                         var tile = tempArr[j];
-                    
+
+                        // if special tile then execute here
+                        if (tile.tileMode != this.tileMode[0])
+                            this.destroyTile(tile);
+
                         // this is where we check if the tile will turn from normal mode to other modes
                         // if destroy 4 gems, the gem player clicked will turn to another mode (destroy row/column/color)
                         if (tile == this.activeTile2)
@@ -532,14 +536,14 @@ class LevelMaker extends Phaser.Scene
                         || (tile != this.activeTile1 && tile.tileMode == this.tileMode[0]) || (tile == this.activeTile2 && tile.tileMode == this.tileMode[0]))
                         {
                             //Remove the tile from the screen
-                            this.tiles.remove(tile);
                             //tile.destroy();
                             this.destroyTile(tile);
+                            this.tiles.remove(tile);
                         
                             //Remove the tile from the theoretical grid
                             if(tilePos.x != -1 && tilePos.y != -1)
                             {
-                            this.tileGrid[tilePos.y][tilePos.x] = null;
+                                this.tileGrid[tilePos.y][tilePos.x] = null;
                             }
                         }
                     }
@@ -655,7 +659,7 @@ class LevelMaker extends Phaser.Scene
             {
                 if (this.tileGrid[i][j] == null)
                 {
-                    //Found a blank spot so lets add animate a tile there
+                    //Found a blank spot
                     var tile = this.addTile(i, j);
 
                     //And also update our "theoretical" grid
