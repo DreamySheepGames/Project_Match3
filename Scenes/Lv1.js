@@ -279,180 +279,26 @@ class Lv1 extends Phaser.Scene
         //          --- matches[1]: arrays of vertical matches like: [[yellow, yellow, yellow, yellow], [purple, purple, purple],...]
 
         var matches = this.getMatches(this.tileGrid);
-        
-        //If there are matches, remove them
-        // if(matches[0].length > 0 || matches[1].length > 0)
-        // {
-        //     //Remove the tiles
-        //     this.removeTileGroup(matches);
 
-        //     //Move the tiles currently on the board into their new positions
-        //     this.resetTile();
-
-        //     //Fill the board with new tiles wherever there is an empty spot, turn on isFilling
-        //     this.fillTile();
-
-        //     //Trigger the tileUp event to reset the active tiles
-        //     this.time.delayedCall(this.durationSwap, function(){
-        //         this.tileUp();
-        //     }, null, this);
-
-        //     //Check again to see if the repositioning of tiles caused any new matches
-        //     this.time.delayedCall(this.durationCheckMatchAgain, function(){
-        //         this.checkMatch();
-        //     }, null, this);
-        // }
-        // else
-        // {
-        //     //no match, no special tile, just swap back
-        //     if (this.activeTile1 && this.activeTile2.tileMode == this.tileMode[0] && this.activeTile1.tileMode == this.tileMode[0])
-        //         this.swapTiles();
-
-        //     // there is no match, but we need to check if the 2 tiles we are interacting are special gems
-        //     if (this.activeTile2)
-        //     {
-        //         //No match, the gem is normal, we move the tiles back to their original position and reset
-        //         if (this.activeTile1.tileMode != this.tileMode[0])
-        //         {
-        //             // switch(gem mode) to execute
-        //             switch(this.activeTile1.tileMode) 
-        //             {
-        //                 // destroy the whole column
-        //                 case 'horizontal':
-        //                     this.removeRow(this.activeTile1);
-        //                     break;
-
-        //                 case 'vertical':
-        //                     this.removeColumn(this.activeTile1);
-        //                     break;
-
-        //             }
-        //             // after destroy tiles with a special tile, fill and check match again
-        //             this.resetTile();
-        //             this.fillTile();
-
-        //             this.time.delayedCall(this.durationSwap, function(){
-        //                 this.tileUp();
-        //             }, null, this);
-
-        //             this.time.delayedCall(this.durationFill - this.durationCheckMatchAgain, function(){
-        //                 this.checkMatch();
-        //             }, null, this);
-        //         }
-
-        //         if (this.activeTile2.tileMode != this.tileMode[0])
-        //         {
-        //             // switch(gem mode) to execute
-        //             switch(this.activeTile2.tileMode) 
-        //             {
-        //                 // destroy the whole column
-        //                 case 'horizontal':
-        //                     this.removeRow(this.activeTile2);
-        //                     break;
-
-        //                 case 'vertical':
-        //                     this.removeColumn(this.activeTile2);
-        //                     break;
-
-        //             }
-        //             // after destroy tiles with a special tile, fill and check match again
-        //             this.resetTile();
-        //             this.fillTile();
-
-        //             this.time.delayedCall(this.durationSwap, function(){
-        //                 this.tileUp();
-        //             }, null, this);
-
-        //             this.time.delayedCall(this.durationFill - this.durationCheckMatchAgain, function(){
-        //                 this.checkMatch();
-        //             }, null, this);
-        //         }
-        //     }
-
-        //     // if the grid isn't in filling session, player can make a move right after the swapping is done
-        //     if (!this.isFilling)
-        //     {
-        //         this.time.delayedCall(this.durationSwap, function(){
-        //             this.tileUp();
-        //             this.canMove = true;
-        //         }, null, this);
-        //     }
-        //     else    // if the grid is in filling session, isFilling will be turned off after the last fill tween is done
-        //     {
-        //         this.time.delayedCall(this.durationFill - this.durationCheckMatchAgain, function(){
-        //             this.isFilling = false;
-        //             this.canMove = true;
-        //         }, null, this);
-        //     }
-        // }
-
+        // We need to check if the 2 tiles we are interacting are special tiles first
+        if (this.activeTile2)
+        {
+            //No match, the gem is normal, we move the tiles back to their original position and reset
+            if (this.activeTile1.tileMode != this.tileMode[0])
+            {
+                this.checkSpecialTile(this.activeTile2, this.activeTile1);
+            }
+            if (this.activeTile2.tileMode != this.tileMode[0])
+            {
+                this.checkSpecialTile(this.activeTile1, this.activeTile2);
+            }
+        }
         
         if (matches[0].length == 0 && matches[1].length == 0)
         {
             //no match, no special tile, just swap back
             if (this.activeTile1 && this.activeTile2.tileMode == this.tileMode[0] && this.activeTile1.tileMode == this.tileMode[0])
                 this.swapTiles();
-
-            // there is no match, but we need to check if the 2 tiles we are interacting are special gems
-            if (this.activeTile2)
-            {
-                //No match, the gem is normal, we move the tiles back to their original position and reset
-                if (this.activeTile1.tileMode != this.tileMode[0])
-                {
-                    // switch(gem mode) to execute
-                    switch(this.activeTile1.tileMode) 
-                    {
-                        // destroy the whole column
-                        case 'horizontal':
-                            this.removeRow(this.activeTile1);
-                            break;
-
-                        case 'vertical':
-                            this.removeColumn(this.activeTile1);
-                            break;
-
-                    }
-                    // after destroy tiles with a special tile, fill and check match again
-                    this.resetTile();
-                    this.fillTile();
-
-                    this.time.delayedCall(this.durationSwap, function(){
-                        this.tileUp();
-                    }, null, this);
-
-                    this.time.delayedCall(this.durationFill - this.durationCheckMatchAgain, function(){
-                        this.checkMatch();
-                    }, null, this);
-                }
-
-                if (this.activeTile2.tileMode != this.tileMode[0])
-                {
-                    // switch(gem mode) to execute
-                    switch(this.activeTile2.tileMode) 
-                    {
-                        // destroy the whole column
-                        case 'horizontal':
-                            this.removeRow(this.activeTile2);
-                            break;
-
-                        case 'vertical':
-                            this.removeColumn(this.activeTile2);
-                            break;
-
-                    }
-                    // after destroy tiles with a special tile, fill and check match again
-                    this.resetTile();
-                    this.fillTile();
-
-                    this.time.delayedCall(this.durationSwap, function(){
-                        this.tileUp();
-                    }, null, this);
-
-                    this.time.delayedCall(this.durationFill - this.durationCheckMatchAgain, function(){
-                        this.checkMatch();
-                    }, null, this);
-                }
-            }
 
             // if the grid isn't in filling session, player can make a move right after the swapping is done
             if (!this.isFilling)
@@ -474,23 +320,51 @@ class Lv1 extends Phaser.Scene
         {
             //Remove the tiles
             this.removeTileGroup(matches);
-
-            //Move the tiles currently on the board into their new positions
             this.resetTile();
-
-            //Fill the board with new tiles wherever there is an empty spot, turn on isFilling
             this.fillTile();
-
-            //Trigger the tileUp event to reset the active tiles
-            this.time.delayedCall(this.durationSwap, function(){
-                this.tileUp();
-            }, null, this);
-
-            //Check again to see if the repositioning of tiles caused any new matches
-            this.time.delayedCall(this.durationCheckMatchAgain, function(){
-                this.checkMatch();
-            }, null, this);
+            this.postFill();
         }
+    }
+
+    checkSpecialTile(clickedTile, swappedTile)
+    {
+        // if the tile is not normal mode, we will destroy the tile grid base on the tile's mode
+        if (swappedTile.tileMode !== this.tileMode[0])
+        {
+            // switch(gem mode) to execute
+            switch(swappedTile.tileMode) 
+            {
+                // destroy the whole column
+                case 'horizontal':
+                    this.removeRow(swappedTile);
+                    break;
+
+                case 'vertical':
+                    this.removeColumn(swappedTile);
+                    break;
+
+                case 'color':
+                    this.destroyTilesOfSameType(swappedTile, clickedTile);
+                    break;
+            }
+            // after destroy tiles with a special tile, move tiles down, fill blank space and check match again
+            this.resetTile();           // move exsiting tiles down
+            this.fillTile();            // fill the blank spaces after moving existing tiles down
+            this.postFill();            // reset activeTile1 and 2 then check for new matches
+        }
+    }
+
+    postFill()
+    {
+        //Trigger the tileUp event to reset the active tiles
+        this.time.delayedCall(this.durationSwap, function(){
+            this.tileUp();
+        }, null, this);
+
+        //Check again to see if the repositioning of tiles caused any new matches
+        this.time.delayedCall(this.durationCheckMatchAgain, function(){
+            this.checkMatch();
+        }, null, this);
     }
 
     tileUp(){
@@ -629,14 +503,21 @@ class Lv1 extends Phaser.Scene
                             if (tempArr.length == 4)
                             {
                                 if (k == 0)
+                                {
                                     tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
+                                }
                                 else
+                                {
                                     tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
+                                }
+
+                                tile.setTint(0xCCCCCC); // This makes the tile brighter
                             }
 
                             if (tempArr.length >= 5)
                             {
                                 tile.tileMode = this.tileMode[3];       // destroy color mode
+                                tile.setTint(0xCCCCCC); // This makes the tile brighter
                             }
                         }
 
@@ -645,14 +526,22 @@ class Lv1 extends Phaser.Scene
                             if (tempArr.length == 4)
                             {
                                 if (k == 0)
+                                {
                                     tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
+                                    tile.setTint(0xCCCCCC); // This makes the tile brighter
+                                }
                                 else
+                                {
                                     tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
+                                    tile.setTint(0xCCCCCC); // This makes the tile brighter
+                                }
+                                tile.setTint(0xCCCCCC); // This makes the tile brighter
                             }
 
                             if (tempArr.length >= 5)
                             {
                                 tile.tileMode = this.tileMode[3];       // destroy color mode
+                                tile.setTint(0xCCCCCC); // This makes the tile brighter
                             }
                         }
                     
@@ -867,4 +756,36 @@ class Lv1 extends Phaser.Scene
             tempArr[i] = null;
         this.incrementScore(tempArr)
     }
+
+    destroyTilesOfSameType(colorTile, tile) {
+        var destroyCount = 0;
+    
+        for (var row = this.levelHeight - this.halfRows; row < this.levelHeight; row++) {
+            for (var column = 0; column < this.tileGrid[row].length; column++) {
+                var tileToRemove = this.tileGrid[row][column];
+    
+                if (tileToRemove == colorTile)
+                {
+                    tileToRemove.destroy();
+                    destroyCount++;
+                    this.tiles.remove(tileToRemove);
+                    this.tileGrid[row][column] = null;
+                }
+
+                if (tileToRemove && tileToRemove.tileType == tile.tileType) {
+                    tileToRemove.destroy();
+                    destroyCount++;
+                    this.tiles.remove(tileToRemove);
+                    this.tileGrid[row][column] = null;
+                }
+
+            }
+        }
+    
+        var tempArr = [];
+        for (var i = 0; i < destroyCount; i++) {
+            tempArr.push(null);
+        }
+        this.incrementScore(tempArr);
+    }    
 }
