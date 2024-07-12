@@ -346,6 +346,10 @@ class Lv1 extends Phaser.Scene
                 case 'color':
                     this.destroyTilesOfSameType(swappedTile, clickedTile);
                     break;
+
+                case 'cross':
+                    this.destroyCross(swappedTile);
+                    break;
             }
             // after destroy tiles with a special tile, move tiles down, fill blank space and check match again
             this.resetTile();           // move exsiting tiles down
@@ -511,13 +515,23 @@ class Lv1 extends Phaser.Scene
                                     tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
                                 }
 
-                                tile.setTint(0xCCCCCC); // This makes the tile brighter
+                                tile.setTint(0xCCCCCC); // This makes the tile darker
+                            }
+
+                            // check to turn tile to cross mode
+                            var horizontalMatches = this.flatten(matches[0]);
+                            var verticalMatches = this.flatten(matches[1]);
+
+                            if (horizontalMatches.includes(tile) && verticalMatches.includes(tile))
+                            {
+                                tile.tileMode = this.tileMode[4];
+                                tile.setTint(0xCCCCCC); // This makes the tile darker
                             }
 
                             if (tempArr.length >= 5)
                             {
                                 tile.tileMode = this.tileMode[3];       // destroy color mode
-                                tile.setTint(0xCCCCCC); // This makes the tile brighter
+                                tile.setTint(0xCCCCCC); // This makes the tile darker
                             }
                         }
 
@@ -528,20 +542,30 @@ class Lv1 extends Phaser.Scene
                                 if (k == 0)
                                 {
                                     tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
-                                    tile.setTint(0xCCCCCC); // This makes the tile brighter
+                                    tile.setTint(0xCCCCCC); // This makes the tile darker
                                 }
                                 else
                                 {
                                     tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
-                                    tile.setTint(0xCCCCCC); // This makes the tile brighter
+                                    tile.setTint(0xCCCCCC); // This makes the tile darker
                                 }
-                                tile.setTint(0xCCCCCC); // This makes the tile brighter
+                                tile.setTint(0xCCCCCC); // This makes the tile darker
+                            }
+
+                            // check to turn tile to cross mode
+                            var horizontalMatches = this.flatten(matches[0]);
+                            var verticalMatches = this.flatten(matches[1]);
+
+                            if (horizontalMatches.includes(tile) && verticalMatches.includes(tile))
+                            {
+                                tile.tileMode = this.tileMode[4];
+                                tile.setTint(0xCCCCCC); // This makes the tile darker
                             }
 
                             if (tempArr.length >= 5)
                             {
                                 tile.tileMode = this.tileMode[3];       // destroy color mode
-                                tile.setTint(0xCCCCCC); // This makes the tile brighter
+                                tile.setTint(0xCCCCCC); // This makes the tile darker
                             }
                         }
                     
@@ -568,6 +592,10 @@ class Lv1 extends Phaser.Scene
                     this.incrementScore(tempArr);
                 }
         }
+    }
+
+    flatten(array) {
+        return array.reduce((acc, val) => acc.concat(val), []);
     }
 
     getTilePos(tileGrid, tile)
@@ -724,9 +752,7 @@ class Lv1 extends Phaser.Scene
             this.tileGrid[row][tilePos.x] = null;
         }
 
-        var tempArr = [];
-        for (var i = 0; i < destroyCount; i++)
-            tempArr[i] = null;
+        var tempArr = new Array(destroyCount).fill(null);
         this.incrementScore(tempArr)
     }
 
@@ -751,9 +777,7 @@ class Lv1 extends Phaser.Scene
             this.tileGrid[tilePos.y][column] = null;
         }
 
-        var tempArr = [];
-        for (var i = 0; i < destroyCount; i++)
-            tempArr[i] = null;
+        var tempArr = new Array(destroyCount).fill(null);
         this.incrementScore(tempArr)
     }
 
@@ -782,10 +806,54 @@ class Lv1 extends Phaser.Scene
             }
         }
     
-        var tempArr = [];
-        for (var i = 0; i < destroyCount; i++) {
-            tempArr.push(null);
-        }
+        var tempArr = new Array(destroyCount).fill(null);
         this.incrementScore(tempArr);
-    }    
+    }
+
+    destroyCross(tile)
+    {
+        var tilePos = this.getTilePos(this.tileGrid, tile);
+    
+        if (tilePos.x === -1 || tilePos.y === -1) {
+            // Tile not found in the grid
+            return;
+        }
+
+        var destroyCount = 0;
+        var destroyedTiles = [];
+
+        // Destroy all tiles in the same row
+        for (var column = 0; column < this.levelLength; column++) 
+        {
+            var tileToRemove = this.tileGrid[tilePos.y][column];
+            if (tileToRemove)
+            {
+                tileToRemove.destroy();
+                this.tiles.remove(tileToRemove);
+                this.tileGrid[tilePos.y][column] = null;
+                destroyedTiles.push(tileToRemove);
+                destroyCount++;
+            }
+        }
+
+        // Destroy all tiles in the same column
+        for (var row = this.levelHeight - this.halfRows; row < this.levelHeight; row++) 
+        {
+            var tileToRemove = this.tileGrid[row][tilePos.x];
+
+            // Ensure we don't re-destroy already destroyed tiles
+            if (tileToRemove && !destroyedTiles.includes(tileToRemove)) 
+            { 
+                tileToRemove.destroy();
+                this.tiles.remove(tileToRemove);
+                this.tileGrid[row][tilePos.x] = null;
+                destroyedTiles.push(tileToRemove);
+                destroyCount++;
+            }
+        }
+
+        // Increment score for destroyed tiles
+        var tempArr = new Array(destroyCount).fill(null);
+        this.incrementScore(tempArr);
+    }
 }
