@@ -92,6 +92,22 @@ class LevelMaker extends Phaser.Scene
                 this.tileGrid[i][j] = null;
             }
         }
+
+        this.blockGrid = [];
+        for (var i = 0; i < this.levelHeight; i++) {
+            this.blockGrid[i] = [];
+            for (var j = 0; j < this.levelLength; j++) {
+                this.blockGrid[i][j] = null;
+            }
+        }
+
+        // we have to custom this according to the level
+        this.blockPos = [
+            [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
+            [11, 4], [11, 5], [11, 6], [11, 7], [11, 8], [11, 9], [11, 10], [11, 11],
+            [12, 4], [12, 5], [12, 6], [12, 7], [12, 8], [12, 9], [12, 10], [12, 11],
+            [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
+            ];
         
         //Create a random data generator to use later
         var seed = Date.now();
@@ -110,6 +126,13 @@ class LevelMaker extends Phaser.Scene
 
     initTiles()
     {
+        // add blocks
+        for (var k = 0; k < this.blockPos.length; k++) 
+        {
+            var pos = this.blockPos[k];
+            this.addBlock(pos[0], pos[1]);
+        }
+
         // row
         for(var i = 0; i < this.tileGrid.length; i++)
         {
@@ -123,6 +146,16 @@ class LevelMaker extends Phaser.Scene
                 this.tileGrid[i][j] = tile;
             }
         }
+    }
+
+    addBlock(i, j) 
+    {
+        const block = new Block(this, (j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                          //x
+                                       i * this.tileHeight + (this.tileHeight / 2) + this.topMargin,                        //y
+                                    'block');
+        block.setOrigin(0.5, 0.5);
+        block.setScale(1);
+        this.blockGrid[i][j] = block;
     }
 
     addTile(i, j)
@@ -333,6 +366,8 @@ class LevelMaker extends Phaser.Scene
 
     checkSpecialTile(clickedTile, swappedTile)
     {
+        this.destroyBackgroundBlockAtTile(swappedTile);
+        
         // if the tile is not normal mode, we will destroy the tile grid base on the tile's mode
         if (swappedTile.tileMode !== this.tileMode[0])
         {
@@ -783,7 +818,7 @@ class LevelMaker extends Phaser.Scene
         //Remove the tile from the theoretical grid
         for (var column = 0; column < this.levelLength; column++)
         {
-            if (this.tileGrid[tilePos.y][column])
+            if (tilePos.y != -1 && this.tileGrid[tilePos.y][column])
                 var tileToRemove = this.tileGrid[tilePos.y][column];
 
             // remove from screen
@@ -857,11 +892,6 @@ class LevelMaker extends Phaser.Scene
     destroyCross(tile)
     {
         var tilePos = this.getTilePos(this.tileGrid, tile);
-    
-        if (tilePos.x === -1 || tilePos.y === -1) {
-            // Tile not found in the grid
-            return;
-        }
 
         var destroyCount = 0;
         var destroyedTiles = [];
@@ -936,6 +966,9 @@ class LevelMaker extends Phaser.Scene
     // activate tile's mode when destroyed
     destroyTile(tile)
     {
+        // destroy the background blocks
+        this.destroyBackgroundBlockAtTile(tile);
+
         // destroy tile based on its mode
         switch(tile.tileMode) 
         {
@@ -954,27 +987,18 @@ class LevelMaker extends Phaser.Scene
                 break;
             
             case 'color':
-                // // if tile.x == horTile then remove
-                // var horPos = this.getTilePos(this.tileGrid, this.horizontalTile);
-                // var verPos = this.getTilePos(this.tileGrid, this.verticalTile);
-                // var curTilePos = this.getTilePos(this.tileGrid, tile);
-                
-                // if (curTilePos.x == horPos.x)
-                //     this.destroyTilesOfSameType(tile, this.horizontalTile);
-                // else
-                // {
-                //     if (curTilePos.y == verPos.y)
-                //         this.destroyTilesOfSameType(tile, this.verticalTile);
-                // }
-
-                // this.horizontalTile = null;
-                // this.verticalTile = null;
-
                 break;
 
             case 'cross':
                 this.destroyCross(tile);
                 break;
         }
+    }
+
+    destroyBackgroundBlockAtTile(tile)
+    {
+        var tilePos = this.getTilePos(this.tileGrid, tile);
+        if (tilePos.x != -1 && tilePos.y != -1 && this.blockGrid[tilePos.y][tilePos.x])
+            this.blockGrid[tilePos.y][tilePos.x].destroy();
     }
 }
