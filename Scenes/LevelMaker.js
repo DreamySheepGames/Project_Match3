@@ -58,8 +58,8 @@ class LevelMaker extends Phaser.Scene
         this.isFilling = true;
 
         // destroyTile helper
-        this.horizontalTile = null;
-        this.verticalTile = null;
+        // this.horizontalTile = null;
+        // this.verticalTile = null;
 
         // get the width and height of tiles
         let blueTileTexture = this.textures.get('blue').getSourceImage();
@@ -285,19 +285,20 @@ class LevelMaker extends Phaser.Scene
         var matches = this.getMatches(this.tileGrid);
 
         // We need to check if the 2 tiles we are interacting are special tiles first
-        if (this.activeTile2)
+        if (this.activeTile2 || this.activeTile1)
         {
-            //No match, the gem is normal, we move the tiles back to their original position and reset
-            if (this.activeTile1.tileMode != this.tileMode[0])
+            //No match, the gem is not normal4
+            if (this.activeTile1.tileMode !== this.tileMode[0])
             {
                 this.checkSpecialTile(this.activeTile2, this.activeTile1);
             }
-            if (this.activeTile2.tileMode != this.tileMode[0])
+            if (this.activeTile2.tileMode !== this.tileMode[0])
             {
                 this.checkSpecialTile(this.activeTile1, this.activeTile2);
             }
         }
         
+        // if there is no matches
         if (matches[0].length == 0 && matches[1].length == 0)
         {
             //no match, no special tile, just swap back
@@ -506,10 +507,21 @@ class LevelMaker extends Phaser.Scene
 
                         // if special tile then execute here
                         if (tile.tileMode != this.tileMode[0])
-                            this.destroyTile(tile);
+                        {
+                            // we can only trigger cross destroy at k = 0
+                            // else the cross destroy gem won't be created, it will be immediately triggered at k = 1 
+                            if (tile.tileMode == this.tileMode[4])
+                            {
+                                if (k == 0)
+                                    this.destroyTile(tile);
+                            }
+                            else
+                                this.destroyTile(tile);
+                        }
 
                         // this is where we check if the tile will turn from normal mode to other modes
                         // if destroy 4 gems, the gem player clicked will turn to another mode (destroy row/column/color)
+
                         if (tile == this.activeTile2)
                         {
                             this.changeTileMode(tile, tempArr, matches, k);
@@ -572,16 +584,17 @@ class LevelMaker extends Phaser.Scene
         // check to turn tile to cross mode
         var horizontalMatches = this.flatten(matches[0]);
         var verticalMatches = this.flatten(matches[1]);
-
+        
         if (horizontalMatches.includes(tile) && verticalMatches.includes(tile))
         {
             tile.tileMode = this.tileMode[4];
             tile.setTint(0x787878); // This makes the tile darker
         }
 
+        // destroy color mode
         if (tempArr.length >= 5)
         {
-            tile.tileMode = this.tileMode[3];       // destroy color mode
+            tile.tileMode = this.tileMode[3];
             tile.setTint(0x000000); // This makes the tile darker
         }
     }
@@ -737,16 +750,25 @@ class LevelMaker extends Phaser.Scene
             if (tileToRemove) 
             {
                 if (tileToRemove == tile) 
+                {
+                    destroyCount++;
+                    this.tiles.remove(tileToRemove);
                     tileToRemove.destroy();
+                    // remove from grid
+                    this.tileGrid[row][tilePos.x] = null;
+                }
                 else
-                    this.destroyTile(tileToRemove);
-
-                destroyCount++;
-                this.tiles.remove(tileToRemove);
-            };
-
-            // remove from grid
-            this.tileGrid[row][tilePos.x] = null;
+                {
+                    if (tileToRemove.tileMode !== this.tileMode[3])
+                    {
+                        destroyCount++;
+                        this.tiles.remove(tileToRemove);
+                        this.destroyTile(tileToRemove);
+                        // remove from grid
+                        this.tileGrid[row][tilePos.x] = null;
+                    }
+                }
+            }
         }
 
         var tempArr = new Array(destroyCount).fill(null);
@@ -761,23 +783,33 @@ class LevelMaker extends Phaser.Scene
         //Remove the tile from the theoretical grid
         for (var column = 0; column < this.levelLength; column++)
         {
-            var tileToRemove = this.tileGrid[tilePos.y][column];
+            if (this.tileGrid[tilePos.y][column])
+                var tileToRemove = this.tileGrid[tilePos.y][column];
 
             // remove from screen
             if (tileToRemove) 
             {
                 // if the current tile is the special tile we passed into this func
                 if (tileToRemove == tile) 
+                {
+                    destroyCount++;
+                    this.tiles.remove(tileToRemove);
                     tileToRemove.destroy();
+                    // remove from grid
+                    this.tileGrid[tilePos.y][column] = null;
+                }
                 else
-                    this.destroyTile(tileToRemove);
-
-                destroyCount++;
-                this.tiles.remove(tileToRemove);
+                {
+                    if (tileToRemove.tileMode !== this.tileMode[3])
+                    {
+                        destroyCount++;
+                        this.tiles.remove(tileToRemove);
+                        this.destroyTile(tileToRemove);
+                        // remove from grid
+                        this.tileGrid[tilePos.y][column] = null;
+                    }
+                }
             }
-
-            // remove from grid
-            this.tileGrid[tilePos.y][column] = null;
         }
 
         var tempArr = new Array(destroyCount).fill(null);
@@ -792,17 +824,7 @@ class LevelMaker extends Phaser.Scene
             for (var column = 0; column < this.tileGrid[row].length; column++) 
             {
                 var tileToRemove = this.tileGrid[row][column];
-    
-                // destroy the special tile that we passed into this func
-                if (tileToRemove == colorTile)
-                {
-                    tileToRemove.destroy();
-                    
-                    destroyCount++;
-                    this.tiles.remove(tileToRemove);
-                    this.tileGrid[row][column] = null;
-                }
-
+                
                 // destroy the tiles that has the same color
                 if (tileToRemove && tileToRemove.tileType == tile.tileType) 
                 {
@@ -811,6 +833,16 @@ class LevelMaker extends Phaser.Scene
                     else
                         this.destroyTile(tileToRemove);
 
+                    destroyCount++;
+                    this.tiles.remove(tileToRemove);
+                    this.tileGrid[row][column] = null;
+                }
+
+                // destroy the special tile that we passed into this func
+                if (tileToRemove == colorTile)
+                {
+                    tileToRemove.destroy();
+                    
                     destroyCount++;
                     this.tiles.remove(tileToRemove);
                     this.tileGrid[row][column] = null;
@@ -841,12 +873,24 @@ class LevelMaker extends Phaser.Scene
             if (tileToRemove)
             {
                 if (tileToRemove == tile) 
+                {
+                    destroyCount++;
+                    this.tiles.remove(tileToRemove);
                     tileToRemove.destroy();
+                    // remove from grid
+                    this.tileGrid[tilePos.y][column] = null;
+                }
                 else
-                    this.destroyTile(tileToRemove);
-
-                this.tiles.remove(tileToRemove);
-                this.tileGrid[tilePos.y][column] = null;
+                {
+                    if (tileToRemove.tileMode !== this.tileMode[3])
+                    {
+                        destroyCount++;
+                        this.tiles.remove(tileToRemove);
+                        this.destroyTile(tileToRemove);
+                        // remove from grid
+                        this.tileGrid[tilePos.y][column] = null;
+                    }
+                }
                 destroyedTiles.push(tileToRemove);
                 destroyCount++;
             }
@@ -861,12 +905,24 @@ class LevelMaker extends Phaser.Scene
             if (tileToRemove && !destroyedTiles.includes(tileToRemove)) 
             { 
                 if (tileToRemove == tile) 
+                {
+                    destroyCount++;
+                    this.tiles.remove(tileToRemove);
                     tileToRemove.destroy();
+                    // remove from grid
+                    this.tileGrid[row][tilePos.x] = null;
+                }
                 else
-                    this.destroyTile(tileToRemove);
-
-                this.tiles.remove(tileToRemove);
-                this.tileGrid[row][tilePos.x] = null;
+                {
+                    if (tileToRemove.tileMode !== this.tileMode[3])
+                    {
+                        destroyCount++;
+                        this.tiles.remove(tileToRemove);
+                        this.destroyTile(tileToRemove);
+                        // remove from grid
+                        this.tileGrid[row][tilePos.x] = null;
+                    }
+                }
                 destroyedTiles.push(tileToRemove);
                 destroyCount++;
             }
@@ -888,31 +944,31 @@ class LevelMaker extends Phaser.Scene
                 break;
 
             case 'horizontal':
-                this.horizontalTile = tile;
+                //this.horizontalTile = tile;
                 this.removeRow(tile);
                 break;
 
             case 'vertical':
-                this.verticalTile = tile;
+                //this.verticalTile = tile;
                 this.removeColumn(tile);
                 break;
             
             case 'color':
-                // if tile.x == horTile then remove
-                var horPos = this.getTilePos(this.tileGrid, this.horizontalTile);
-                var verPos = this.getTilePos(this.tileGrid, this.verticalTile);
-                var curTilePos = this.getTilePos(this.tileGrid, tile);
+                // // if tile.x == horTile then remove
+                // var horPos = this.getTilePos(this.tileGrid, this.horizontalTile);
+                // var verPos = this.getTilePos(this.tileGrid, this.verticalTile);
+                // var curTilePos = this.getTilePos(this.tileGrid, tile);
                 
-                if (curTilePos.x == horPos.x)
-                    this.destroyTilesOfSameType(tile, this.horizontalTile);
-                else
-                {
-                    if (curTilePos.y == verPos.y)
-                        this.destroyTilesOfSameType(tile, this.verticalTile);
-                }
+                // if (curTilePos.x == horPos.x)
+                //     this.destroyTilesOfSameType(tile, this.horizontalTile);
+                // else
+                // {
+                //     if (curTilePos.y == verPos.y)
+                //         this.destroyTilesOfSameType(tile, this.verticalTile);
+                // }
 
-                this.horizontalTile = null;
-                this.verticalTile = null;
+                // this.horizontalTile = null;
+                // this.verticalTile = null;
 
                 break;
 
