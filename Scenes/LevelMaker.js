@@ -20,9 +20,11 @@ class LevelMaker extends Phaser.Scene
         
         // Gem drop tween ease
         this.dropTweenEase = 'Cubic.easeOut';
+        //this.dropTweenEase = 'Linear';
 
         // set time duration for actions and tweening
         this.durationFill = 700;                           // the time it takes to fill the tile grid
+        //this.durationFill = 350;                           // the time it takes to fill the tile grid
         this.durationSwap = 100;                            // the time it takes to swap 2 gems' position
         this.durationCheckMatch = 200;                      // the time it takes to check for a match-3 after swapping so we can remove the gems
         this.durationCheckMatchAgain = 500;                 // the time it takes to check for a match-3 again after removing the gems
@@ -108,6 +110,12 @@ class LevelMaker extends Phaser.Scene
             [12, 4], [12, 5], [12, 6], [12, 7], [12, 8], [12, 9], [12, 10], [12, 11],
             [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
             ];
+
+        // for diagonally slide mechanic
+        this.railwaySwitches = [];
+        this.addRailwaySwitchTile(12, 1, true, false);
+        this.addRailwaySwitchTile(12, 14, false, true);
+
         
         //Create a random data generator to use later
         var seed = Date.now();
@@ -137,7 +145,7 @@ class LevelMaker extends Phaser.Scene
         for(var i = 0; i < this.tileGrid.length; i++)
         {
             // column
-            for(var j = 0; j < this.tileGrid[0].length; j++)
+            for(var j = 1; j < this.levelLength - 1; j++)
             {
                 //Add the tile to the game at this grid position
                 var tile = this.addTile(i, j);
@@ -146,8 +154,11 @@ class LevelMaker extends Phaser.Scene
                 this.tileGrid[i][j] = tile;
             }
         }
+
+        this.resetTile();
     }
 
+    // the background blocks that player needs to destroy to win the level
     addBlock(i, j) 
     {
         const block = new Block(this, (j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                          //x
@@ -156,6 +167,12 @@ class LevelMaker extends Phaser.Scene
         block.setOrigin(0.5, 0.5);
         block.setScale(1);
         this.blockGrid[i][j] = block;
+    }
+
+    // for diagonally sliding
+    addRailwaySwitchTile(row, column, diagonalLeft = false, diagonalRight = false) {
+        var switchTile = new RailwaySwitchTile(row, column, diagonalLeft, diagonalRight);
+        this.railwaySwitches.push(switchTile);
     }
 
     addTile(i, j)
@@ -276,32 +293,37 @@ class LevelMaker extends Phaser.Scene
             var tile1InGridPosY = (this.activeTile1.y - this.tileWidth / 2 - this.topMargin) / this.tileHeight      // return postition in int from 0
             var tile2InGridPosY = (this.activeTile2.y - this.tileWidth / 2 - this.topMargin) / this.tileHeight
 
-            this.tileGrid[tile1InGridPosY][tile1InGridPosX] = this.activeTile2;
-            this.tileGrid[tile2InGridPosY][tile2InGridPosX] = this.activeTile1;
+            if (Number.isInteger(tile1InGridPosY) && Number.isInteger(tile2InGridPosY))
+            {
+                this.tileGrid[tile1InGridPosY][tile1InGridPosX] = this.activeTile2;
+                this.tileGrid[tile2InGridPosY][tile2InGridPosX] = this.activeTile1;
 
-            //Actually move them on the screen
-            this.tweens.add({
-                targets: this.activeTile1,
-                x:tile2Pos.x * this.tileWidth + (this.tileWidth/2),
-                y:tile2Pos.y * this.tileHeight + (this.tileHeight/2),
-                duration: this.durationSwap,
-                ease: 'Linear',
-                repeat: 0,
-                yoyo: false
-            });
+                //Actually move them on the screen
+                this.tweens.add({
+                    targets: this.activeTile1,
+                    x:tile2Pos.x * this.tileWidth + (this.tileWidth/2),
+                    y:tile2Pos.y * this.tileHeight + (this.tileHeight/2),
+                    duration: this.durationSwap,
+                    ease: 'Linear',
+                    repeat: 0,
+                    yoyo: false
+                });
 
-            this.tweens.add({
-                targets: this.activeTile2,
-                x:tile1Pos.x * this.tileWidth + (this.tileWidth/2),
-                y:tile1Pos.y * this.tileHeight + (this.tileHeight/2),
-                duration: this.durationSwap,
-                ease: 'Linear',
-                repeat: 0,
-                yoyo: false
-            });
+                this.tweens.add({
+                    targets: this.activeTile2,
+                    x:tile1Pos.x * this.tileWidth + (this.tileWidth/2),
+                    y:tile1Pos.y * this.tileHeight + (this.tileHeight/2),
+                    duration: this.durationSwap,
+                    ease: 'Linear',
+                    repeat: 0,
+                    yoyo: false
+                });
 
-            this.activeTile1 = this.tileGrid[tile1InGridPosY][tile1InGridPosX];
-            this.activeTile2 = this.tileGrid[tile2InGridPosY][tile2InGridPosX];
+                this.activeTile1 = this.tileGrid[tile1InGridPosY][tile1InGridPosX];
+                this.activeTile2 = this.tileGrid[tile2InGridPosY][tile2InGridPosX];
+            }
+
+            
         }
     }
 
@@ -318,7 +340,7 @@ class LevelMaker extends Phaser.Scene
         var matches = this.getMatches(this.tileGrid);
 
         // We need to check if the 2 tiles we are interacting are special tiles first
-        if (this.activeTile2 || this.activeTile1)
+        if (this.activeTile2)
         {
             //No match, the gem is not normal4
             if (this.activeTile1.tileMode !== this.tileMode[0])
@@ -335,7 +357,7 @@ class LevelMaker extends Phaser.Scene
         if (matches[0].length == 0 && matches[1].length == 0)
         {
             //no match, no special tile, just swap back
-            if (this.activeTile1 && this.activeTile2.tileMode == this.tileMode[0] && this.activeTile1.tileMode == this.tileMode[0])
+            if (this.activeTile2 && this.activeTile2.tileMode == this.tileMode[0] && this.activeTile1.tileMode == this.tileMode[0])
                 this.swapTiles();
 
             // if the grid isn't in filling session, player can make a move right after the swapping is done
@@ -660,41 +682,171 @@ class LevelMaker extends Phaser.Scene
         return pos;
     }
 
-    // move existing tiles to new position
-    resetTile()
-    {
-        //Loop through each column from left to right
-        for (var i = 0; i < this.levelLength; i++)
-        {
+    //move existing tiles to new position
+    // resetTile()
+    // {
+    //     //Loop through each column from left to right
+    //     for (var i = 0; i < this.levelLength; i++)
+    //     {
+    //         // Loop through each item in column
+    //         for (var j = this.levelHeight - 1; j > 0; j--)
+    //         {
+    //             //If this space is blank, but not the one above, move the one above down
+    //             if(this.tileGrid[j][i] == null && this.tileGrid[j - 1][i] != null)
+    //             {
+    //                 //Move the tile above down one
+    //                 var tempTile = this.tileGrid[j - 1][i];
+    //                 this.tileGrid[j][i] = tempTile;
+    //                 this.tileGrid[j - 1][i] = null;
+
+    //                 this.tweens.add({
+    //                     targets: tempTile,
+    //                     y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
+    //                     duration: this.durationFill,
+    //                     ease: this.dropTweenEase,
+    //                     repeat: 0,
+    //                     yoyo: false
+    //                 });
+
+    //                 //The positions have changed so start this process again, loop the column again from the bottom
+    //                 //This is for the circumstances where there are multiple blank space in the one column we are working on
+    //                 //or else the gem will only drop down one blank space, and the rest of the blank space stay blank
+    //                 //This can not be set as this.levelHeight - 1 because j-- is executed when this loop end
+    //                 j = this.levelHeight;
+    //             }
+    //         }
+    //     }
+    // }
+
+    resetTile() {
+        // Loop through each column from left to right
+        for (var i = 0; i < this.levelLength; i++) {
             // Loop through each item in column
-            for (var j = this.levelHeight - 1; j > 0; j--)
-            {
-                //If this space is blank, but not the one above, move the one above down
-                if(this.tileGrid[j][i] == null && this.tileGrid[j - 1][i] != null)
+            for (var j = this.levelHeight - 1; j > 0; j--) {
+                // Check if current position is a railway switch tile
+                var isSwitchTile = this.railwaySwitches.some(switchTile => switchTile.row === j && switchTile.column === i);
+
+                if (isSwitchTile) 
                 {
-                    //Move the tile above down one
-                    var tempTile = this.tileGrid[j - 1][i];
-                    this.tileGrid[j][i] = tempTile;
-                    this.tileGrid[j - 1][i] = null;
+                    var switchTile = this.railwaySwitches.find(switchTile => switchTile.row === j && switchTile.column === i);
+                    if (switchTile.diagonalLeft && this.tileGrid[j - 1][i]) 
+                    {
+                        if (this.tileGrid[j][i - 1] == null)
+                        {
+                            // Move tile diagonally left
+                            var tempTile = this.tileGrid[j - 1][i];
+                            this.tileGrid[j][i - 1] = tempTile;
+                            this.tileGrid[j - 1][i] = null;
+    
+    
+                            this.tweens.add({
+                                targets: tempTile,
+                                x: (this.tileWidth * (i - 1)) + (this.tileWidth / 2) + this.leftMargin,
+                                y: (this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
+                                duration: this.durationFill,
+                                ease: this.dropTweenEase,
+                                repeat: 0,
+                                yoyo: false,
+                            });
+                            i = 0;
+                            j = this.levelHeight;                            
+                        }
+                        else    // vertical drop
+                        {
+                            if (this.tileGrid[j][i] == null)
+                            {
+                                // Normal vertical drop
+                                var tempTile = this.tileGrid[j - 1][i];
+                                this.tileGrid[j][i] = tempTile;
+                                this.tileGrid[j - 1][i] = null;
+                                
 
-                    this.tweens.add({
-                        targets: tempTile,
-                        y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
-                        duration: this.durationFill,
-                        ease: this.dropTweenEase,
-                        repeat: 0,
-                        yoyo: false
-                    });
+                                this.tweens.add({
+                                    targets: tempTile,
+                                    y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
+                                    duration: this.durationFill,
+                                    ease: this.dropTweenEase,
+                                    repeat: 0,
+                                    yoyo: false,
+                                });
 
-                    //The positions have changed so start this process again, loop the column again from the bottom
-                    //This is for the circumstances where there are multiple blank space in the one column we are working on
-                    //or else the gem will only drop down one blank space, and the rest of the blank space stay blank
-                    //This can not be set as this.levelHeight - 1 because j-- is executed when this loop end
-                    j = this.levelHeight;
+                                i = 0;
+                                j = this.levelHeight;
+                            }
+                        }
+
+                    } 
+                    else 
+                    {
+                        if (switchTile.diagonalRight && this.tileGrid[j - 1][i]) 
+                        {
+                            if (this.tileGrid[j][i + 1] == null)
+                            {
+                                // Move tile diagonally right
+                                var tempTile = this.tileGrid[j - 1][i];
+                                this.tileGrid[j - 1][i] = null;
+                                this.tileGrid[j][i + 1] = tempTile;
+    
+                                this.tweens.add({
+                                    targets: tempTile,
+                                    x: (this.tileWidth * (i + 1)) + (this.tileWidth / 2) + this.leftMargin,
+                                    y: (this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
+                                    duration: this.durationFill,
+                                    ease: this.dropTweenEase,
+                                    repeat: 0,
+                                    yoyo: false
+                                });
+                            }
+                            else
+                            {
+                                if (this.tileGrid[j][i] == null)
+                                {
+                                    // Normal vertical drop
+                                    var tempTile = this.tileGrid[j - 1][i];
+                                    this.tileGrid[j][i] = tempTile;
+                                    this.tileGrid[j - 1][i] = null;
+                                    
+    
+                                    this.tweens.add({
+                                        targets: tempTile,
+                                        y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
+                                        duration: this.durationFill,
+                                        ease: this.dropTweenEase,
+                                        repeat: 0,
+                                        yoyo: false,
+                                    });
+    
+                                    i = 0;
+                                    j = this.levelHeight;
+                                }
+                            }
+                        }
+                    }       
+                } 
+                else
+                {
+                    if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i] != null) {
+                        // Normal vertical drop
+                        var tempTile = this.tileGrid[j - 1][i];
+                        this.tileGrid[j][i] = tempTile;
+                        this.tileGrid[j - 1][i] = null;
+    
+                        this.tweens.add({
+                            targets: tempTile,
+                            y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
+                            duration: this.durationFill,
+                            ease: this.dropTweenEase,
+                            repeat: 0,
+                            yoyo: false,
+                        });
+                        i = 0;
+                        j = this.levelHeight;
+                    }
                 }
             }
         }
     }
+
 
     fillTile()
     {
@@ -703,7 +855,7 @@ class LevelMaker extends Phaser.Scene
         //Check for blank spaces in the grid and add new tiles at that position
         for(var i = 0; i < this.levelHeight; i++)
         {
-            for(var j = 0; j < this.tileGrid[i].length; j++)
+            for(var j = 1; j < this.levelLength - 1; j++)
             {
                 if (this.tileGrid[i][j] == null)
                 {
@@ -899,7 +1051,8 @@ class LevelMaker extends Phaser.Scene
         // Destroy all tiles in the same row
         for (var column = 0; column < this.levelLength; column++) 
         {
-            var tileToRemove = this.tileGrid[tilePos.y][column];
+            if (tilePos.y != -1)
+                var tileToRemove = this.tileGrid[tilePos.y][column];
             if (tileToRemove)
             {
                 if (tileToRemove == tile) 
@@ -929,7 +1082,8 @@ class LevelMaker extends Phaser.Scene
         // Destroy all tiles in the same column
         for (var row = this.levelHeight - this.halfRows; row < this.levelHeight; row++) 
         {
-            var tileToRemove = this.tileGrid[row][tilePos.x];
+            if (tilePos.x != -1)
+                var tileToRemove = this.tileGrid[row][tilePos.x];
 
             // Ensure we don't re-destroy already destroyed tiles
             if (tileToRemove && !destroyedTiles.includes(tileToRemove)) 

@@ -1,4 +1,3 @@
-
 var config = {
     width: 1500,
     height: 700,

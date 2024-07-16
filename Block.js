@@ -4,7 +4,6 @@ class Block extends Phaser.GameObjects.Sprite {
         this.scene = scene;
         this.scene.add.existing(this);
         this.setInteractive();
-        this.isBlock = true; // Flag to identify block tiles
     }
 
     // Method to destroy the block
