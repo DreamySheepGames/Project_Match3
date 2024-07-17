@@ -40,7 +40,7 @@ class LevelMaker extends Phaser.Scene
         this.background.setScale(1.6);
 
         // Declare assets that will be used as tiles
-        this.tileTypes = ['blue', 'green', 'red', 'purple', 'cyan', 'yellow'];
+        this.tileTypes = ['blue', 'green', 'red', 'purple', 'cyan', 'yellow', 'air'];
 
         // Declare gem modes:
         // normal: self explained
@@ -48,7 +48,7 @@ class LevelMaker extends Phaser.Scene
         // vertical: when removed, destroy the whole column it is moved to
         // color: when removed, destroy every gem that has the same color with the gem it is swapped with
         // cross: when rememoved: destroy the whole row AND column it is moved to
-        this.tileMode = ['normal', 'horizontal', 'vertical', 'color', 'cross'];
+        this.tileMode = ['normal', 'horizontal', 'vertical', 'color', 'cross', 'air'];
         this.score = 0;
 
         // Keep track which tiles the user is trying to swap
@@ -103,7 +103,7 @@ class LevelMaker extends Phaser.Scene
             }
         }
 
-        // we have to custom this according to the level
+        // where to put the block tile that needs to be destroyed to go to the next level [row, column]
         this.blockPos = [
             [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
             [11, 4], [11, 5], [11, 6], [11, 7], [11, 8], [11, 9], [11, 10], [11, 11],
@@ -111,10 +111,31 @@ class LevelMaker extends Phaser.Scene
             [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
             ];
 
-        // for diagonally slide mechanic
+        // for diagonally slide mechanic, (row, column, diagonal slide left, diagonal slide right)
         this.railwaySwitches = [];
+        // the tile "slide out" of the "not-null" tile grid
         this.addRailwaySwitchTile(12, 1, true, false);
         this.addRailwaySwitchTile(12, 14, false, true);
+
+        // Bottom left corner, this is just for testing, usually we don't use this because we already got vertical drop
+        this.addRailwaySwitchTile(14, 0, false, true);
+        this.addRailwaySwitchTile(15, 1, false, true);
+
+        // at mid tilegrid
+        this.addRailwaySwitchTile(15, 6, false, true);
+        this.addRailwaySwitchTile(15, 9, true, false);
+
+        // bottom right corner, this code doesn't work, not because it's broken, it's because we scan the tile grid from left to right
+        // so becaues of that, the vertical drop of the left column is prioritzed over the diagonal slide to left of the right column
+        // the diagonal slide to the left above still works though
+        this.addRailwaySwitchTile(14, 15, true, false);
+        this.addRailwaySwitchTile(15, 14, true, false);
+
+        // where to put the air block [row, column]
+        this.airPos = [
+            [15, 15], [14, 15], [15, 14], [14, 8],
+            [15, 0], [14, 0], [15, 1], [14, 7],
+        ];
 
         
         //Create a random data generator to use later
@@ -130,6 +151,11 @@ class LevelMaker extends Phaser.Scene
         }, null, this);
 
         this.createScore();
+        this.incrementScore();
+
+        this.targetCount = 0;
+        this.createTargetCount();
+        this.incrementTargetCount(this.blockPos);
     }
 
     initTiles()
@@ -141,17 +167,39 @@ class LevelMaker extends Phaser.Scene
             this.addBlock(pos[0], pos[1]);
         }
 
+        // add air blocks
+        for(var i = 0; i < this.tileGrid.length; i++)
+        {
+            // column
+            for(var j = 0; j < this.levelLength; j++)
+            {
+                // put air block in init loop
+                if (this.airPos.some(pos => pos[0] === i && pos[1] === j))
+                {
+                    var tile = this.tiles.create((j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                           //x
+                                -((this.levelHeight - i - Math.floor(this.levelHeight / 2)) * this.tileHeight),                                     //y
+                                'air');
+                    tile.tileMode = this.tileMode[this.tileMode.length - 1];
+                    tile.disableInteractive();
+                    this.tileGrid[i][j] = tile;
+                }
+            }
+        }
+
         // row
         for(var i = 0; i < this.tileGrid.length; i++)
         {
             // column
             for(var j = 1; j < this.levelLength - 1; j++)
             {
-                //Add the tile to the game at this grid position
-                var tile = this.addTile(i, j);
+                // Add the tile to the game at this grid position where is not for air block
+                if (!this.airPos.some(pos => pos[0] === i && pos[1] === j)) 
+                {
+                    var tile = this.addTile(i, j);
 
-                //Keep a track of the tiles position in our tileGrid
-                this.tileGrid[i][j] = tile;
+                    // Keep track of the tile's position in our tileGrid
+                    this.tileGrid[i][j] = tile;
+                }
             }
         }
 
@@ -180,7 +228,8 @@ class LevelMaker extends Phaser.Scene
         this.isFilling = true;
 
         //Choose a random tile to add
-        var tileToAdd = this.tileTypes[this.random.integerInRange(0, this.tileTypes.length - 1)];
+        //this.tileTypes.length - 2 because we don't want to spawn air tile
+        var tileToAdd = this.tileTypes[this.random.integerInRange(0, this.tileTypes.length - 2)];
 
         //Add the tile at the correct x position, but add it to the top of the game (so we can slide it in)
         var tile = this.tiles.create((j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                          //x
@@ -266,6 +315,14 @@ class LevelMaker extends Phaser.Scene
 
                     //Set the second active tile (the one where the user dragged to)
                     this.activeTile2 = this.tileGrid[hoverPosY][hoverPosX];
+
+                    // if active tile 1 or 2 is air block
+                    if (this.activeTile2.tileMode === this.tileMode[this.tileMode.length - 1]
+                     || this.activeTile1.tileMode === this.tileMode[this.tileMode.length - 1])
+                    {
+                        this.activeTile1 = null;
+                        this.activeTile2 = null;
+                    }
 
                     //Swap the two active tiles
                     this.swapTiles();
@@ -388,7 +445,11 @@ class LevelMaker extends Phaser.Scene
 
     checkSpecialTile(clickedTile, swappedTile)
     {
-        this.destroyBackgroundBlockAtTile(swappedTile);
+        // if there is a background block at the tiles we are interacting with
+        if (this.blockPos.some(pos => pos[1] == this.getTilePos(this.tileGrid, swappedTile).x && pos[0] == this.getTilePos(this.tileGrid, swappedTile).y))
+        {
+            this.destroyBackgroundBlockAtTile(swappedTile);
+        }
         
         // if the tile is not normal mode, we will destroy the tile grid base on the tile's mode
         if (swappedTile.tileMode !== this.tileMode[0])
@@ -682,42 +743,6 @@ class LevelMaker extends Phaser.Scene
         return pos;
     }
 
-    //move existing tiles to new position
-    // resetTile()
-    // {
-    //     //Loop through each column from left to right
-    //     for (var i = 0; i < this.levelLength; i++)
-    //     {
-    //         // Loop through each item in column
-    //         for (var j = this.levelHeight - 1; j > 0; j--)
-    //         {
-    //             //If this space is blank, but not the one above, move the one above down
-    //             if(this.tileGrid[j][i] == null && this.tileGrid[j - 1][i] != null)
-    //             {
-    //                 //Move the tile above down one
-    //                 var tempTile = this.tileGrid[j - 1][i];
-    //                 this.tileGrid[j][i] = tempTile;
-    //                 this.tileGrid[j - 1][i] = null;
-
-    //                 this.tweens.add({
-    //                     targets: tempTile,
-    //                     y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
-    //                     duration: this.durationFill,
-    //                     ease: this.dropTweenEase,
-    //                     repeat: 0,
-    //                     yoyo: false
-    //                 });
-
-    //                 //The positions have changed so start this process again, loop the column again from the bottom
-    //                 //This is for the circumstances where there are multiple blank space in the one column we are working on
-    //                 //or else the gem will only drop down one blank space, and the rest of the blank space stay blank
-    //                 //This can not be set as this.levelHeight - 1 because j-- is executed when this loop end
-    //                 j = this.levelHeight;
-    //             }
-    //         }
-    //     }
-    // }
-
     resetTile() {
         // Loop through each column from left to right
         for (var i = 0; i < this.levelLength; i++) {
@@ -753,22 +778,10 @@ class LevelMaker extends Phaser.Scene
                         }
                         else    // vertical drop
                         {
-                            if (this.tileGrid[j][i] == null)
+                            if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1])
                             {
                                 // Normal vertical drop
-                                var tempTile = this.tileGrid[j - 1][i];
-                                this.tileGrid[j][i] = tempTile;
-                                this.tileGrid[j - 1][i] = null;
-                                
-
-                                this.tweens.add({
-                                    targets: tempTile,
-                                    y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
-                                    duration: this.durationFill,
-                                    ease: this.dropTweenEase,
-                                    repeat: 0,
-                                    yoyo: false,
-                                });
+                                this.moveDownVertically(this.tileGrid, i, j)
 
                                 i = 0;
                                 j = this.levelHeight;
@@ -776,75 +789,67 @@ class LevelMaker extends Phaser.Scene
                         }
 
                     } 
-                    else 
+
+                    if (switchTile.diagonalRight && this.tileGrid[j - 1][i]) 
                     {
-                        if (switchTile.diagonalRight && this.tileGrid[j - 1][i]) 
+                        if (this.tileGrid[j][i + 1] == null)
                         {
-                            if (this.tileGrid[j][i + 1] == null)
-                            {
-                                // Move tile diagonally right
-                                var tempTile = this.tileGrid[j - 1][i];
-                                this.tileGrid[j - 1][i] = null;
-                                this.tileGrid[j][i + 1] = tempTile;
-    
-                                this.tweens.add({
-                                    targets: tempTile,
-                                    x: (this.tileWidth * (i + 1)) + (this.tileWidth / 2) + this.leftMargin,
-                                    y: (this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
-                                    duration: this.durationFill,
-                                    ease: this.dropTweenEase,
-                                    repeat: 0,
-                                    yoyo: false
-                                });
-                            }
-                            else
-                            {
-                                if (this.tileGrid[j][i] == null)
-                                {
-                                    // Normal vertical drop
-                                    var tempTile = this.tileGrid[j - 1][i];
-                                    this.tileGrid[j][i] = tempTile;
-                                    this.tileGrid[j - 1][i] = null;
-                                    
-    
-                                    this.tweens.add({
-                                        targets: tempTile,
-                                        y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
-                                        duration: this.durationFill,
-                                        ease: this.dropTweenEase,
-                                        repeat: 0,
-                                        yoyo: false,
-                                    });
-    
-                                    i = 0;
-                                    j = this.levelHeight;
-                                }
+                            // Move tile diagonally right
+                            var tempTile = this.tileGrid[j - 1][i];
+                            this.tileGrid[j - 1][i] = null;
+                            this.tileGrid[j][i + 1] = tempTile;
+
+                            this.tweens.add({
+                                targets: tempTile,
+                                x: (this.tileWidth * (i + 1)) + (this.tileWidth / 2) + this.leftMargin,
+                                y: (this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
+                                duration: this.durationFill,
+                                ease: this.dropTweenEase,
+                                repeat: 0,
+                                yoyo: false
+                            });
+                        }
+                        else
+                        {
+                            if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1])
+                            {   
+                                // Normal vertical drop
+                                this.moveDownVertically(this.tileGrid, i, j)
+
+                                i = 0;
+                                j = this.levelHeight;
                             }
                         }
-                    }       
+                    }    
                 } 
                 else
                 {
-                    if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i] != null) {
+                    if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i] && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1]) {
                         // Normal vertical drop
-                        var tempTile = this.tileGrid[j - 1][i];
-                        this.tileGrid[j][i] = tempTile;
-                        this.tileGrid[j - 1][i] = null;
-    
-                        this.tweens.add({
-                            targets: tempTile,
-                            y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
-                            duration: this.durationFill,
-                            ease: this.dropTweenEase,
-                            repeat: 0,
-                            yoyo: false,
-                        });
+                        this.moveDownVertically(this.tileGrid, i, j)
+                        
                         i = 0;
                         j = this.levelHeight;
                     }
                 }
             }
         }
+    }
+
+    moveDownVertically(tileGrid, i, j)
+    {
+        var tempTile = tileGrid[j - 1][i];
+
+        tileGrid[j][i] = tempTile;
+        tileGrid[j - 1][i] = null;
+        this.tweens.add({
+            targets: tempTile,
+            y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
+            duration: this.durationFill,
+            ease: this.dropTweenEase,
+            repeat: 0,
+            yoyo: false,
+        });
     }
 
 
@@ -884,8 +889,34 @@ class LevelMaker extends Phaser.Scene
     incrementScore(array)
     {
         // 1 gem = 3 points
-        this.score += array.length * 3;
-        this.scoreLabel.text = this.score;
+        if (array)
+        {
+            this.score += array.length * 3;
+            this.scoreLabel.text = "SCORE: " + this.score;
+        }
+        else
+        {
+            this.scoreLabel.text = "SCORE: " + this.score;
+        }
+
+    }
+
+    createTargetCount()
+    {
+        var targetCountFont = "35px Arial";
+
+        this.targetCountLabel = this.add.text((Math.floor(this.levelLength / 2) * this.tileWidth) + this.leftMargin,
+                                         40, 
+                                         "0", {font: targetCountFont, fill: "#fff"});
+
+        this.targetCountLabel.setOrigin(0.5, 0);
+        //this.targetCountLabel.align = 'center';
+    }
+
+    incrementTargetCount(array)
+    {
+        // 1 gem = 3 points
+        this.targetCountLabel.text = "TARGET: " + this.targetCount + "/" + array.length;
     }
 
     // this function is to make the drop gem look more stable
@@ -934,7 +965,7 @@ class LevelMaker extends Phaser.Scene
             var tileToRemove = this.tileGrid[row][tilePos.x];
 
             // remove from screen
-            if (tileToRemove) 
+            if (tileToRemove && tileToRemove.tileMode !== this.tileMode[this.tileMode.length - 1]) 
             {
                 if (tileToRemove == tile) 
                 {
@@ -973,8 +1004,8 @@ class LevelMaker extends Phaser.Scene
             if (tilePos.y != -1 && this.tileGrid[tilePos.y][column])
                 var tileToRemove = this.tileGrid[tilePos.y][column];
 
-            // remove from screen
-            if (tileToRemove) 
+            // remove from screen, also check for air tile
+            if (tileToRemove && tileToRemove.tileMode !== this.tileMode[this.tileMode.length - 1]) 
             {
                 // if the current tile is the special tile we passed into this func
                 if (tileToRemove == tile) 
@@ -1053,7 +1084,7 @@ class LevelMaker extends Phaser.Scene
         {
             if (tilePos.y != -1)
                 var tileToRemove = this.tileGrid[tilePos.y][column];
-            if (tileToRemove)
+            if (tileToRemove && tileToRemove.tileMode !== this.tileMode[this.tileMode.length - 1])
             {
                 if (tileToRemove == tile) 
                 {
@@ -1086,7 +1117,7 @@ class LevelMaker extends Phaser.Scene
                 var tileToRemove = this.tileGrid[row][tilePos.x];
 
             // Ensure we don't re-destroy already destroyed tiles
-            if (tileToRemove && !destroyedTiles.includes(tileToRemove)) 
+            if (tileToRemove && !destroyedTiles.includes(tileToRemove) && tileToRemove.tileMode !== this.tileMode[this.tileMode.length - 1]) 
             { 
                 if (tileToRemove == tile) 
                 {
@@ -1146,6 +1177,10 @@ class LevelMaker extends Phaser.Scene
             case 'cross':
                 this.destroyCross(tile);
                 break;
+
+            case 'air':
+                console.log("boi")
+                break;
         }
     }
 
@@ -1153,6 +1188,11 @@ class LevelMaker extends Phaser.Scene
     {
         var tilePos = this.getTilePos(this.tileGrid, tile);
         if (tilePos.x != -1 && tilePos.y != -1 && this.blockGrid[tilePos.y][tilePos.x])
+        {
+            this.targetCount++;
+            this.incrementTargetCount(this.blockPos);
             this.blockGrid[tilePos.y][tilePos.x].destroy();
+            this.blockGrid[tilePos.y][tilePos.x] = null;
+        }
     }
 }
