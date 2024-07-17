@@ -3,7 +3,8 @@ class Block extends Phaser.GameObjects.Sprite {
         super(scene, x, y, texture);
         this.scene = scene;
         this.scene.add.existing(this);
-        this.setInteractive();
+        this.hardness = 1;
+        this.disableInteractive();
     }
 
     // Method to destroy the block

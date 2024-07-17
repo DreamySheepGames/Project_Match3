@@ -111,6 +111,10 @@ class LevelMaker extends Phaser.Scene
             [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
             ];
 
+        this.blockHardness2Pos = [
+            [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
+            ];
+
         // for diagonally slide mechanic, (row, column, diagonal slide left, diagonal slide right)
         this.railwaySwitches = [];
         // the tile "slide out" of the "not-null" tile grid
@@ -144,6 +148,7 @@ class LevelMaker extends Phaser.Scene
         //this.add.text(40, 40, `Log: ${this.random}`);
 
         this.initTiles();
+        this.setBlockHardness();
 
         //After done spawning tiles, we check if there are matches
         this.time.delayedCall(this.durationFill, function() {
@@ -215,6 +220,29 @@ class LevelMaker extends Phaser.Scene
         block.setOrigin(0.5, 0.5);
         block.setScale(1);
         this.blockGrid[i][j] = block;
+    }
+
+    setBlockHardness()
+    {
+        if (this.blockHardness2Pos)
+        {
+            // scan through all the block in blockGrid
+            for (var row = 0; row < this.levelHeight; row++)
+            {
+                for (var column = 0; column < this.levelLength; column++)
+                {
+                    // if this block in blockGrid is in the blockHardness2Pos then change its hardness to 2
+                    if (this.blockHardness2Pos.some(pos => pos[0] === this.getTilePos(this.blockGrid, this.blockGrid[row][column]).y
+                    && pos[1] === this.getTilePos(this.blockGrid, this.blockGrid[row][column]).x))
+                    {
+                        this.blockGrid[row][column].hardness = 2;
+
+                        // we can change tile sprite for hardness level 2
+                        this.blockGrid[row][column].setTint(0x787878);
+                    }
+                }
+            }
+        }
     }
 
     // for diagonally sliding
@@ -445,7 +473,7 @@ class LevelMaker extends Phaser.Scene
 
     checkSpecialTile(clickedTile, swappedTile)
     {
-        // if there is a background block at the tiles we are interacting with
+        // if there are background blocks at the tiles we are interacting with then destroy them
         if (this.blockPos.some(pos => pos[1] == this.getTilePos(this.tileGrid, swappedTile).x && pos[0] == this.getTilePos(this.tileGrid, swappedTile).y))
         {
             this.destroyBackgroundBlockAtTile(swappedTile);
@@ -1187,12 +1215,26 @@ class LevelMaker extends Phaser.Scene
     destroyBackgroundBlockAtTile(tile)
     {
         var tilePos = this.getTilePos(this.tileGrid, tile);
+
         if (tilePos.x != -1 && tilePos.y != -1 && this.blockGrid[tilePos.y][tilePos.x])
         {
-            this.targetCount++;
-            this.incrementTargetCount(this.blockPos);
-            this.blockGrid[tilePos.y][tilePos.x].destroy();
-            this.blockGrid[tilePos.y][tilePos.x] = null;
+            this.blockGrid[tilePos.y][tilePos.x].hardness--;
+
+            // execute the block based on its hardness
+            switch (this.blockGrid[tilePos.y][tilePos.x].hardness)
+            {
+                case 1:
+                    // we can change tile sprite for hardness level 1
+                    this.blockGrid[tilePos.y][tilePos.x].setTint(0xffffff);
+                    break;
+
+                case 0:
+                    this.targetCount++;
+                    this.incrementTargetCount(this.blockPos);
+                    this.blockGrid[tilePos.y][tilePos.x].destroy();
+                    this.blockGrid[tilePos.y][tilePos.x] = null;
+                    break;
+            }
         }
     }
 }
