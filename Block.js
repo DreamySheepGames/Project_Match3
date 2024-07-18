@@ -11,6 +11,10 @@ class Block extends Phaser.GameObjects.Sprite {
     destroyBlock() {
         this.destroy();
     }
+
+    changeTexture(newTextureKey) {
+        this.setTexture(newTextureKey);
+    }
 }
 
 //export default Block;

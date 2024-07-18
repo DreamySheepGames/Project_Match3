@@ -16,7 +16,7 @@ class LevelMaker extends Phaser.Scene
         this.topMargin = -400;
 
         // the size of the gems
-        this.gemSize = 0.9;
+        this.gemSize = 0.92;
         
         // Gem drop tween ease
         this.dropTweenEase = 'Cubic.easeOut';
@@ -112,6 +112,9 @@ class LevelMaker extends Phaser.Scene
             ];
 
         this.blockHardness2Pos = [
+            [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
+            [11, 4],                                                        [11, 11],
+            [12, 4],                                                        [12, 11],
             [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
             ];
 
@@ -238,7 +241,7 @@ class LevelMaker extends Phaser.Scene
                         this.blockGrid[row][column].hardness = 2;
 
                         // we can change tile sprite for hardness level 2
-                        this.blockGrid[row][column].setTint(0x787878);
+                        this.blockGrid[row][column].changeTexture('block2');
                     }
                 }
             }
@@ -263,6 +266,9 @@ class LevelMaker extends Phaser.Scene
         var tile = this.tiles.create((j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                          //x
                                     -((this.levelHeight - i - Math.floor(this.levelHeight / 2)) * this.tileHeight),        //y
                                     tileToAdd);
+
+        // this is for special effect like destroying row/column/color/cross
+        //tile.overlaySprite;
 
         tile.setScale(this.gemSize);
 
@@ -306,6 +312,7 @@ class LevelMaker extends Phaser.Scene
         if (this.canMove)
         {
             this.activeTile1 = tile;
+            this.activeTile1.setScale(0.75);
             this.startPosX = (tile.x - this.leftMargin - this.tileWidth / 2) / this.tileWidth;
             this.startPosY = (tile.y - this.topMargin - this.tileHeight / 2) / this.tileHeight;
         }
@@ -313,7 +320,7 @@ class LevelMaker extends Phaser.Scene
 
     update()
     {
-        this.disableTiles();
+        this.handleTiles();
 
         //The user is currently dragging from a tile, so let's see if they have dragged
         //over the top of an adjacent tile
@@ -345,11 +352,13 @@ class LevelMaker extends Phaser.Scene
                     this.activeTile2 = this.tileGrid[hoverPosY][hoverPosX];
 
                     // if active tile 1 or 2 is air block
-                    if (this.activeTile2.tileMode === this.tileMode[this.tileMode.length - 1]
-                     || this.activeTile1.tileMode === this.tileMode[this.tileMode.length - 1])
+                    if (this.activeTile2 && this.activeTile2.tileMode === this.tileMode[this.tileMode.length - 1]
+                     || this.activeTile1.tileMode === this.tileMode[this.tileMode.length - 1] || this.activeTile2 == null)
                     {
+                        this.activeTile1.setScale(this.gemSize);
                         this.activeTile1 = null;
                         this.activeTile2 = null;
+
                     }
 
                     //Swap the two active tiles
@@ -369,6 +378,7 @@ class LevelMaker extends Phaser.Scene
         //If there are two active tiles, swap their positions
         if (this.activeTile1 && this.activeTile2)
         {
+            this.activeTile1.setScale(this.gemSize);
             var tile1Pos = {x:(this.activeTile1.x - this.tileWidth / 2) / this.tileWidth, y:(this.activeTile1.y - this.tileHeight / 2) / this.tileHeight};
             var tile2Pos = {x:(this.activeTile2.x - this.tileWidth / 2) / this.tileWidth, y:(this.activeTile2.y - this.tileHeight / 2) / this.tileHeight};
             
@@ -391,7 +401,7 @@ class LevelMaker extends Phaser.Scene
                     duration: this.durationSwap,
                     ease: 'Linear',
                     repeat: 0,
-                    yoyo: false
+                    yoyo: false,
                 });
 
                 this.tweens.add({
@@ -401,7 +411,7 @@ class LevelMaker extends Phaser.Scene
                     duration: this.durationSwap,
                     ease: 'Linear',
                     repeat: 0,
-                    yoyo: false
+                    yoyo: false,
                 });
 
                 this.activeTile1 = this.tileGrid[tile1InGridPosY][tile1InGridPosX];
@@ -482,6 +492,8 @@ class LevelMaker extends Phaser.Scene
         // if the tile is not normal mode, we will destroy the tile grid base on the tile's mode
         if (swappedTile.tileMode !== this.tileMode[0])
         {
+            swappedTile.overlaySprite.destroy();
+
             // switch(gem mode) to execute
             switch(swappedTile.tileMode) 
             {
@@ -549,7 +561,9 @@ class LevelMaker extends Phaser.Scene
                 {
                     if (tileGrid[i][j] && tileGrid[i][j + 1] && tileGrid[i][j + 2]) // check 3 tiles next to each other
                     {
-                        if (tileGrid[i][j].tileType == tileGrid[i][j+1].tileType && tileGrid[i][j+1].tileType == tileGrid[i][j+2].tileType) // match 3
+                        if (tileGrid[i][j].tileType == tileGrid[i][j+1].tileType && tileGrid[i][j+1].tileType == tileGrid[i][j+2].tileType
+                            && tileGrid[i][j].tileMode != this.tileMode[3] && tileGrid[i][j+1].tileMode != this.tileMode[3] && tileGrid[i][j+2].tileMode != this.tileMode[3]
+                        ) // match 3
                         {
                             // we push more in if we already have a match-3 (the snippet below this snippet) but there is a match-4 or match-5...
                             if (groups.length > 0)
@@ -599,7 +613,9 @@ class LevelMaker extends Phaser.Scene
                 {
                     if (tileGrid[j][i] && tileGrid[j+1][i] && tileGrid[j+2][i])
                     {
-                        if (tileGrid[j][i].tileType == tileGrid[j+1][i].tileType && tileGrid[j+1][i].tileType == tileGrid[j+2][i].tileType)
+                        if (tileGrid[j][i].tileType == tileGrid[j+1][i].tileType && tileGrid[j+1][i].tileType == tileGrid[j+2][i].tileType
+                            && tileGrid[j][i].tileMode != this.tileMode[3] && tileGrid[j + 1][i].tileMode != this.tileMode[3] && tileGrid[j + 2][i].tileMode != this.tileMode[3]
+                        )
                         {
                             if (groups.length > 0)
                             {
@@ -668,12 +684,12 @@ class LevelMaker extends Phaser.Scene
                         // this is where we check if the tile will turn from normal mode to other modes
                         // if destroy 4 gems, the gem player clicked will turn to another mode (destroy row/column/color)
 
-                        if (tile == this.activeTile2)
+                        if (tile != null && tile == this.activeTile2)
                         {
                             this.changeTileMode(tile, tempArr, matches, k);
                         }
 
-                        if (tile == this.activeTile1)
+                        if (tile != null && tile == this.activeTile1)
                         {
                             this.changeTileMode(tile, tempArr, matches, k);
                         }
@@ -714,34 +730,60 @@ class LevelMaker extends Phaser.Scene
 
     changeTileMode(tile, tempArr, matches, k)
     {
-        if (tempArr.length == 4)
-        {
-            if (k == 0)
-            {
-                tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
-            }
-            else
-            {
-                tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
-            }
-            tile.setTint(0xCCCCCC); // This makes the tile darker
-        }
-
         // check to turn tile to cross mode
         var horizontalMatches = this.flatten(matches[0]);
         var verticalMatches = this.flatten(matches[1]);
         
-        if (horizontalMatches.includes(tile) && verticalMatches.includes(tile))
+        if (tile.tileMode == this.tileMode[0] && verticalMatches.includes(tile) && horizontalMatches.includes(tile))
         {
             tile.tileMode = this.tileMode[4];
-            tile.setTint(0x787878); // This makes the tile darker
+            
+            if (k == 0)
+            {
+                var overlaySprite = this.add.sprite(tile.x, tile.y, 'cross');
+                overlaySprite.setScale(this.gemSize); // If you need to scale it
+                overlaySprite.setOrigin(0.5, 0.5);
+                tile.overlaySprite = overlaySprite;
+            }
+        }
+
+        if (tempArr.length == 4)
+        {
+            if (k == 0)
+            {
+                if (tile.tileMode == this.tileMode[0])
+                {
+                    tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
+    
+                    var overlaySprite = this.add.sprite(tile.x, tile.y, 'column');
+                    overlaySprite.setScale(this.gemSize); // If you need to scale it
+                    overlaySprite.setOrigin(0.5, 0.5);
+                    tile.overlaySprite = overlaySprite;
+                }
+            }
+            else
+            {
+                if (tile.tileMode == this.tileMode[0])
+                {
+                    tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
+    
+                    var overlaySprite = this.add.sprite(tile.x, tile.y, 'row');
+                    overlaySprite.setScale(this.gemSize); // If you need to scale it
+                    overlaySprite.setOrigin(0.5, 0.5);
+                    tile.overlaySprite = overlaySprite;
+                }
+            }
         }
 
         // destroy color mode
-        if (tempArr.length >= 5)
+        if (tile.tileMode == this.tileMode[0] && tempArr.length >= 5)
         {
             tile.tileMode = this.tileMode[3];
-            tile.setTint(0x000000); // This makes the tile darker
+            
+            var overlaySprite = this.add.sprite(tile.x, tile.y, 'color');
+            overlaySprite.setScale(this.gemSize); // If you need to scale it
+            overlaySprite.setOrigin(0.5, 0.5);
+            tile.overlaySprite = overlaySprite;
         }
     }
 
@@ -789,8 +831,6 @@ class LevelMaker extends Phaser.Scene
                             // Move tile diagonally left
                             var tempTile = this.tileGrid[j - 1][i];
                             this.tileGrid[j][i - 1] = tempTile;
-                            this.tileGrid[j - 1][i] = null;
-    
     
                             this.tweens.add({
                                 targets: tempTile,
@@ -801,6 +841,9 @@ class LevelMaker extends Phaser.Scene
                                 repeat: 0,
                                 yoyo: false,
                             });
+
+                            this.tileGrid[j - 1][i] = null;
+
                             i = 0;
                             j = this.levelHeight;                            
                         }
@@ -824,7 +867,6 @@ class LevelMaker extends Phaser.Scene
                         {
                             // Move tile diagonally right
                             var tempTile = this.tileGrid[j - 1][i];
-                            this.tileGrid[j - 1][i] = null;
                             this.tileGrid[j][i + 1] = tempTile;
 
                             this.tweens.add({
@@ -834,8 +876,13 @@ class LevelMaker extends Phaser.Scene
                                 duration: this.durationFill,
                                 ease: this.dropTweenEase,
                                 repeat: 0,
-                                yoyo: false
+                                yoyo: false,
                             });
+
+                            this.tileGrid[j - 1][i] = null;
+
+                            i = 0;
+                            j = this.levelHeight;
                         }
                         else
                         {
@@ -869,7 +916,6 @@ class LevelMaker extends Phaser.Scene
         var tempTile = tileGrid[j - 1][i];
 
         tileGrid[j][i] = tempTile;
-        tileGrid[j - 1][i] = null;
         this.tweens.add({
             targets: tempTile,
             y:(this.tileHeight * j) + (this.tileHeight / 2) + this.topMargin,
@@ -878,6 +924,14 @@ class LevelMaker extends Phaser.Scene
             repeat: 0,
             yoyo: false,
         });
+
+        if (tempTile != null && tempTile.overlaySprite != null)
+        {
+            tempTile.overlaySprite.x = tempTile.x;
+            tempTile.overlaySprite.y = tempTile.y;
+        }
+
+        tileGrid[j - 1][i] = null;
     }
 
 
@@ -951,7 +1005,7 @@ class LevelMaker extends Phaser.Scene
     // we divide the tileGrid by two half, the half down is where player interact with the grid
     // and the half up is where the gems are spawn
     // this function to make this function works properly we also need to modify the get matches function
-    disableTiles()
+    handleTiles()
     {
         for (var row = 0; row < this.levelHeight; row++) 
         {
@@ -977,6 +1031,12 @@ class LevelMaker extends Phaser.Scene
                         tile.setInteractive();
                         tile.visible = true;
                     }
+
+                    if (tile.overlaySprite)
+                    {
+                        tile.overlaySprite.x = tile.x;
+                        tile.overlaySprite.y = tile.y
+                    }
                 }
             }
         }
@@ -984,8 +1044,11 @@ class LevelMaker extends Phaser.Scene
 
     removeColumn(tile)
     {
+        if (tile.overlaySprite)
+            tile.overlaySprite.destroy();
         var tilePos = this.getTilePos(this.tileGrid, tile);
         var destroyCount = 0;
+
 
         //Remove the tile from the theoretical grid
         for (var row = this.levelHeight - this.halfRows; row < this.levelHeight; row++)
@@ -1023,6 +1086,8 @@ class LevelMaker extends Phaser.Scene
 
     removeRow(tile)
     {
+        if (tile.overlaySprite)
+            tile.overlaySprite.destroy();
         var tilePos = this.getTilePos(this.tileGrid, tile);
         var destroyCount = 0;
 
@@ -1064,6 +1129,11 @@ class LevelMaker extends Phaser.Scene
 
     destroyTilesOfSameType(colorTile, tile) {
         var destroyCount = 0;
+
+        colorTile.overlaySprite.destroy();
+
+        if (colorTile.overlaySprite != null)
+            colorTile.overlaySprite.destroy();
     
         for (var row = this.levelHeight - this.halfRows; row < this.levelHeight; row++) 
         {
@@ -1079,9 +1149,13 @@ class LevelMaker extends Phaser.Scene
                     else
                         this.destroyTile(tileToRemove);
 
-                    destroyCount++;
-                    this.tiles.remove(tileToRemove);
-                    this.tileGrid[row][column] = null;
+                    // we don't use color destroy tile to destroy another destroy tile
+                    if (tileToRemove.tileMode != this.tileMode[3])
+                    {
+                        destroyCount++;
+                        this.tiles.remove(tileToRemove);
+                        this.tileGrid[row][column] = null;
+                    }
                 }
 
                 // destroy the special tile that we passed into this func
@@ -1103,6 +1177,9 @@ class LevelMaker extends Phaser.Scene
     destroyCross(tile)
     {
         var tilePos = this.getTilePos(this.tileGrid, tile);
+
+        if (tile.overlaySprite)
+            tile.overlaySprite.destroy();
 
         var destroyCount = 0;
         var destroyedTiles = [];
@@ -1207,7 +1284,6 @@ class LevelMaker extends Phaser.Scene
                 break;
 
             case 'air':
-                console.log("boi")
                 break;
         }
     }
@@ -1225,7 +1301,7 @@ class LevelMaker extends Phaser.Scene
             {
                 case 1:
                     // we can change tile sprite for hardness level 1
-                    this.blockGrid[tilePos.y][tilePos.x].setTint(0xffffff);
+                    this.blockGrid[tilePos.y][tilePos.x].changeTexture('block');
                     break;
 
                 case 0:

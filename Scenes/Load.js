@@ -14,8 +14,13 @@ class Load extends Phaser.Scene
         this.load.image('cyan', 'assets/Gems/Gems A 5.png');
         this.load.image('yellow', 'assets/Gems/Gems A 3.png');
         this.load.image('air', 'assets/Gems/Gems Air.png');
+        this.load.image('row', 'assets/Gems/Gems Row.png');
+        this.load.image('column', 'assets/Gems/Gems Column.png');
+        this.load.image('cross', 'assets/Gems/Gems Cross.png');
+        this.load.image('color', 'assets/Gems/Gems Color.png');
 
         this.load.image('block', 'assets/RoundedBlocks/ground.png');
+        this.load.image('block2', 'assets/RoundedBlocks/iceCave.png');
         this.load.image('background1', 'assets/Backgrounds/BG1.jpg');
     }
 
