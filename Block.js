@@ -15,6 +15,10 @@ class Block extends Phaser.GameObjects.Sprite {
     changeTexture(newTextureKey) {
         this.setTexture(newTextureKey);
     }
+
+    hardnessDecrease() {
+        this.hardness--;
+    }
 }
 
 //export default Block;

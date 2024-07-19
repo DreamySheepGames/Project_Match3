@@ -95,6 +95,7 @@ class LevelMaker extends Phaser.Scene
             }
         }
 
+        // the grid for the targets that we need to destroy
         this.blockGrid = [];
         for (var i = 0; i < this.levelHeight; i++) {
             this.blockGrid[i] = [];
@@ -118,6 +119,26 @@ class LevelMaker extends Phaser.Scene
             [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
             ];
 
+        
+        // grid for the locks of the tile grid so the player can't interact with that tile
+        this.lockGrid = [];
+        for (var i = 0; i < this.levelHeight; i++) {
+            this.lockGrid[i] = [];
+            for (var j = 0; j < this.levelLength; j++) {
+                this.lockGrid[i][j] = null;
+            }
+        }
+
+        this.lockPos = [
+            [10, 4], [10, 11],
+            [13, 4], [13, 11],
+        ]
+
+        this.lockLevel2Pos = [
+            [10, 4], [10, 11],
+            [13, 4], [13, 11],
+        ]
+
         // for diagonally slide mechanic, (row, column, diagonal slide left, diagonal slide right)
         this.railwaySwitches = [];
         // the tile "slide out" of the "not-null" tile grid
@@ -138,6 +159,8 @@ class LevelMaker extends Phaser.Scene
         this.addRailwaySwitchTile(14, 15, true, false);
         this.addRailwaySwitchTile(15, 14, true, false);
 
+        // lock helper
+
         // where to put the air block [row, column]
         this.airPos = [
             [15, 15], [14, 15], [15, 14], [14, 8],
@@ -152,6 +175,7 @@ class LevelMaker extends Phaser.Scene
 
         this.initTiles();
         this.setBlockHardness();
+        this.setLockLevel();
 
         //After done spawning tiles, we check if there are matches
         this.time.delayedCall(this.durationFill, function() {
@@ -168,7 +192,7 @@ class LevelMaker extends Phaser.Scene
 
     initTiles()
     {
-        // add blocks
+        // add target/background blocks
         for (var k = 0; k < this.blockPos.length; k++) 
         {
             var pos = this.blockPos[k];
@@ -194,6 +218,7 @@ class LevelMaker extends Phaser.Scene
             }
         }
 
+        // add tiles
         // row
         for(var i = 0; i < this.tileGrid.length; i++)
         {
@@ -211,6 +236,13 @@ class LevelMaker extends Phaser.Scene
             }
         }
 
+        // add locks
+        for (var k = 0; k < this.lockPos.length; k++) 
+        {
+            var pos = this.lockPos[k];
+            this.addLock(pos[0], pos[1]);
+        }
+
         this.resetTile();
     }
 
@@ -219,7 +251,7 @@ class LevelMaker extends Phaser.Scene
     {
         const block = new Block(this, (j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                          //x
                                        i * this.tileHeight + (this.tileHeight / 2) + this.topMargin,                        //y
-                                    'block');
+                                    'block');                                                                               // texture
         block.setOrigin(0.5, 0.5);
         block.setScale(1);
         this.blockGrid[i][j] = block;
@@ -248,6 +280,42 @@ class LevelMaker extends Phaser.Scene
         }
     }
 
+    addLock(i, j) 
+    {
+        const lock = new Lock(this, (j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                            //x
+                                    i * this.tileHeight + (this.tileHeight / 2) + this.topMargin,                           //y
+                                    1,                                                                                      //lock level
+                                    'lock');                                                                                // texture
+        lock.setOrigin(0.5, 0.5);
+        lock.setScale(1);
+        this.lockGrid[i][j] = lock;
+        
+        this.tileGrid[i][j].isLocked = true;
+    }
+
+    setLockLevel()
+    {
+        if (this.lockLevel2Pos)
+        {
+            // scan through all the lock in lockGrid
+            for (var row = 0; row < this.levelHeight; row++)
+            {
+                for (var column = 0; column < this.levelLength; column++)
+                {
+                    // if this lock in the lockGrid is in the lockLevel2Pos then change its level to 2
+                    if (this.lockLevel2Pos.some(pos => pos[0] === this.getTilePos(this.lockGrid, this.lockGrid[row][column]).y
+                    && pos[1] === this.getTilePos(this.lockGrid, this.lockGrid[row][column]).x))
+                    {
+                        this.lockGrid[row][column].level = 2;
+
+                        // we can change tile sprite for hardness level 2
+                        this.lockGrid[row][column].changeTexture('lock2');
+                    }
+                }
+            }
+        }
+    }
+
     // for diagonally sliding
     addRailwaySwitchTile(row, column, diagonalLeft = false, diagonalRight = false) {
         var switchTile = new RailwaySwitchTile(row, column, diagonalLeft, diagonalRight);
@@ -262,6 +330,12 @@ class LevelMaker extends Phaser.Scene
         //this.tileTypes.length - 2 because we don't want to spawn air tile
         var tileToAdd = this.tileTypes[this.random.integerInRange(0, this.tileTypes.length - 2)];
 
+        if (j == 2 && i == 9) tileToAdd = this.tileTypes[0]
+        if (j == 2 && i == 10) tileToAdd = this.tileTypes[0]
+        if (j == 2 && i == 11) tileToAdd = this.tileTypes[0]
+        if (j == 2 && i == 12) tileToAdd = this.tileTypes[0]
+        if (j == 2 && i == 13) tileToAdd = this.tileTypes[0]
+
         //Add the tile at the correct x position, but add it to the top of the game (so we can slide it in)
         var tile = this.tiles.create((j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                          //x
                                     -((this.levelHeight - i - Math.floor(this.levelHeight / 2)) * this.tileHeight),        //y
@@ -269,7 +343,7 @@ class LevelMaker extends Phaser.Scene
 
         // this is for special effect like destroying row/column/color/cross
         //tile.overlaySprite;
-
+        tile.isLocked = false;
         tile.setScale(this.gemSize);
 
         //Animate the tile into the correct vertical position
@@ -351,9 +425,10 @@ class LevelMaker extends Phaser.Scene
                     //Set the second active tile (the one where the user dragged to)
                     this.activeTile2 = this.tileGrid[hoverPosY][hoverPosX];
 
-                    // if active tile 1 or 2 is air block
+                    // if active tile 1 or 2 is air block or locked, or active tile 2 is null
                     if (this.activeTile2 && this.activeTile2.tileMode === this.tileMode[this.tileMode.length - 1]
-                     || this.activeTile1.tileMode === this.tileMode[this.tileMode.length - 1] || this.activeTile2 == null)
+                    || this.activeTile1.tileMode === this.tileMode[this.tileMode.length - 1] || this.activeTile2 == null
+                    || this.activeTile1.isLocked || this.activeTile2.isLocked)
                     {
                         this.activeTile1.setScale(this.gemSize);
                         this.activeTile1 = null;
@@ -674,11 +749,12 @@ class LevelMaker extends Phaser.Scene
                             // else the cross destroy gem won't be created, it will be immediately triggered at k = 1 
                             if (tile.tileMode == this.tileMode[4])
                             {
-                                if (k == 0)
+                                if (k == 0 && !tile.isLocked)
                                     this.destroyTile(tile);
                             }
                             else
-                                this.destroyTile(tile);
+                                if (!tile.isLocked)
+                                    this.destroyTile(tile);
                         }
 
                         // this is where we check if the tile will turn from normal mode to other modes
@@ -709,15 +785,17 @@ class LevelMaker extends Phaser.Scene
                         if ((tile != this.activeTile2 && tile.tileMode == this.tileMode[0]) || (tile == this.activeTile2 && tile.tileMode == this.tileMode[0])
                         || (tile != this.activeTile1 && tile.tileMode == this.tileMode[0]) || (tile == this.activeTile2 && tile.tileMode == this.tileMode[0]))
                         {
-                            //Remove the tile from the screen
-                            //tile.destroy();
-                            this.destroyTile(tile);
-                            this.tiles.remove(tile);
-                        
-                            //Remove the tile from the theoretical grid
-                            if(tilePos.x != -1 && tilePos.y != -1)
+                            if (tile.isLocked)
                             {
-                                this.tileGrid[tilePos.y][tilePos.x] = null;
+                                this.destroyTile(tile) // decrease the lock level
+                            }
+                            else
+                            {
+                                this.tiles.remove(tile);
+                                this.destroyTile(tile);
+                                // remove from grid
+                                if(tilePos.x != -1 && tilePos.y != -1)
+                                    this.tileGrid[tilePos.y][tilePos.x] = null;
                             }
                         }
                     }
@@ -849,7 +927,7 @@ class LevelMaker extends Phaser.Scene
                         }
                         else    // vertical drop
                         {
-                            if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1])
+                            if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1] && !this.tileGrid[j - 1][i].isLocked)
                             {
                                 // Normal vertical drop
                                 this.moveDownVertically(this.tileGrid, i, j)
@@ -886,7 +964,7 @@ class LevelMaker extends Phaser.Scene
                         }
                         else
                         {
-                            if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1])
+                            if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1] && !this.tileGrid[j - 1][i].isLocked)
                             {   
                                 // Normal vertical drop
                                 this.moveDownVertically(this.tileGrid, i, j)
@@ -899,7 +977,7 @@ class LevelMaker extends Phaser.Scene
                 } 
                 else
                 {
-                    if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i] && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1]) {
+                    if (this.tileGrid[j][i] == null && this.tileGrid[j - 1][i] && this.tileGrid[j - 1][i].tileMode != this.tileMode[this.tileMode.length - 1] && !this.tileGrid[j - 1][i].isLocked) {
                         // Normal vertical drop
                         this.moveDownVertically(this.tileGrid, i, j)
                         
@@ -1018,13 +1096,8 @@ class LevelMaker extends Phaser.Scene
                     // Check if the row is lower (i.e., above) than halfRows
                     if (row < this.halfRows) 
                     {
-                        // Make tile invisible
-                        // if (tile) 
-                        // {
                         tile.visible = false;
                         tile.disableInteractive();
-                        //}
-                        
                     }
                     else 
                     {
@@ -1063,18 +1136,28 @@ class LevelMaker extends Phaser.Scene
                     destroyCount++;
                     this.tiles.remove(tileToRemove);
                     tileToRemove.destroy();
+
                     // remove from grid
-                    this.tileGrid[row][tilePos.x] = null;
+                    if (!tileToRemove.isLocked)
+                        this.tileGrid[row][tilePos.x] = null;
                 }
                 else
                 {
+                    // if the tile we are destroying is not destroy by color mode
                     if (tileToRemove.tileMode !== this.tileMode[3])
                     {
-                        destroyCount++;
-                        this.tiles.remove(tileToRemove);
-                        this.destroyTile(tileToRemove);
-                        // remove from grid
-                        this.tileGrid[row][tilePos.x] = null;
+                        if (tileToRemove.isLocked)
+                        {
+                            this.destroyTile(tileToRemove) // decrease the lock level
+                        }
+                        else
+                        {
+                            destroyCount++;
+                            this.tiles.remove(tileToRemove);
+                            this.destroyTile(tileToRemove);     // lock from 1 -> 0: tileToRemove.isLock = false;
+                            // remove from grid
+                            this.tileGrid[row][tilePos.x] = null;
+                        }
                     }
                 }
             }
@@ -1111,13 +1194,21 @@ class LevelMaker extends Phaser.Scene
                 }
                 else
                 {
+                    // if the tile is not in destroy by color mode
                     if (tileToRemove.tileMode !== this.tileMode[3])
                     {
-                        destroyCount++;
-                        this.tiles.remove(tileToRemove);
-                        this.destroyTile(tileToRemove);
-                        // remove from grid
-                        this.tileGrid[tilePos.y][column] = null;
+                        if (tileToRemove.isLocked)
+                        {
+                            this.destroyTile(tileToRemove) // decrease the lock level
+                        }
+                        else
+                        {
+                            destroyCount++;
+                            this.tiles.remove(tileToRemove);
+                            this.destroyTile(tileToRemove);     // lock from 1 -> 0: tileToRemove.isLock = false;
+                            // remove from grid
+                            this.tileGrid[tilePos.y][column] = null;
+                        }
                     }
                 }
             }
@@ -1140,33 +1231,56 @@ class LevelMaker extends Phaser.Scene
             for (var column = 0; column < this.tileGrid[row].length; column++) 
             {
                 var tileToRemove = this.tileGrid[row][column];
-                
-                // destroy the tiles that has the same color
-                if (tileToRemove && tileToRemove.tileType == tile.tileType) 
-                {
-                    if (tileToRemove == tile) 
-                        tileToRemove.destroy();
-                    else
-                        this.destroyTile(tileToRemove);
-
-                    // we don't use color destroy tile to destroy another destroy tile
-                    if (tileToRemove.tileMode != this.tileMode[3])
-                    {
-                        destroyCount++;
-                        this.tiles.remove(tileToRemove);
-                        this.tileGrid[row][column] = null;
-                    }
-                }
 
                 // destroy the special tile that we passed into this func
                 if (tileToRemove == colorTile)
                 {
-                    tileToRemove.destroy();
                     
                     destroyCount++;
                     this.tiles.remove(tileToRemove);
-                    this.tileGrid[row][column] = null;
+                    tileToRemove.destroy();
+
+                    if (!tileToRemove.isLocked)
+                        this.tileGrid[row][column] = null;
+
                 }
+                
+                if (tileToRemove)
+                {
+                    if (tileToRemove.isLocked)
+                    {
+                        if (tileToRemove.tileType == tile.tileType)
+                        {
+                            this.destroyTile(tileToRemove);
+                        }
+                    }
+                    else
+                    {
+                        // destroy the tiles that has the same color
+                        if (tileToRemove.tileType == tile.tileType) 
+                        {
+                            if (tileToRemove == tile) 
+                                tileToRemove.destroy();
+                            else
+                            {
+                                this.destroyTile(tileToRemove);
+                            }
+        
+                            //BUG
+                            // we don't use color destroy tile to destroy another destroy tile
+                            if (tileToRemove.tileMode != this.tileMode[3])
+                            {
+                                destroyCount++;
+                                
+                                this.tileGrid[row][column] = null;
+                                
+                                this.tiles.remove(tileToRemove);
+                            }
+                        }
+                    }
+                }
+
+                
             }
         }
     
@@ -1191,11 +1305,13 @@ class LevelMaker extends Phaser.Scene
                 var tileToRemove = this.tileGrid[tilePos.y][column];
             if (tileToRemove && tileToRemove.tileMode !== this.tileMode[this.tileMode.length - 1])
             {
+                // if the tile we are scanning is the tile we passed into this func
                 if (tileToRemove == tile) 
                 {
                     destroyCount++;
                     this.tiles.remove(tileToRemove);
                     tileToRemove.destroy();
+
                     // remove from grid
                     this.tileGrid[tilePos.y][column] = null;
                 }
@@ -1203,11 +1319,18 @@ class LevelMaker extends Phaser.Scene
                 {
                     if (tileToRemove.tileMode !== this.tileMode[3])
                     {
-                        destroyCount++;
-                        this.tiles.remove(tileToRemove);
-                        this.destroyTile(tileToRemove);
-                        // remove from grid
-                        this.tileGrid[tilePos.y][column] = null;
+                        if (tileToRemove.isLocked)
+                        {
+                            this.destroyTile(tileToRemove) // decrease the lock level
+                        }
+                        else
+                        {
+                            destroyCount++;
+                            this.tiles.remove(tileToRemove);
+                            this.destroyTile(tileToRemove);     // lock from 1 -> 0: tileToRemove.isLock = false;
+                            // remove from grid
+                            this.tileGrid[tilePos.y][column] = null;
+                        }
                     }
                 }
                 destroyedTiles.push(tileToRemove);
@@ -1221,26 +1344,36 @@ class LevelMaker extends Phaser.Scene
             if (tilePos.x != -1)
                 var tileToRemove = this.tileGrid[row][tilePos.x];
 
-            // Ensure we don't re-destroy already destroyed tiles
+            // Ensure we don't re-destroy already destroyed tiles that has already destroyed
             if (tileToRemove && !destroyedTiles.includes(tileToRemove) && tileToRemove.tileMode !== this.tileMode[this.tileMode.length - 1]) 
             { 
+                // if the tile we are scanning is the tile we passed into this func
                 if (tileToRemove == tile) 
                 {
                     destroyCount++;
-                    this.tiles.remove(tileToRemove);
-                    tileToRemove.destroy();
+                    this.tiles.remove(tileToRemove && !tileToRemove.isLocked);
+
                     // remove from grid
                     this.tileGrid[row][tilePos.x] = null;
+
+                    tileToRemove.destroy();
                 }
                 else
                 {
                     if (tileToRemove.tileMode !== this.tileMode[3])
                     {
-                        destroyCount++;
-                        this.tiles.remove(tileToRemove);
-                        this.destroyTile(tileToRemove);
-                        // remove from grid
-                        this.tileGrid[row][tilePos.x] = null;
+                        if (tileToRemove.isLocked)
+                        {
+                            this.destroyTile(tileToRemove) // decrease the lock level
+                        }
+                        else
+                        {
+                            destroyCount++;
+                            this.tiles.remove(tileToRemove);
+                            this.destroyTile(tileToRemove);     // lock from 1 -> 0: tileToRemove.isLock = false;
+                            // remove from grid
+                            this.tileGrid[row][tilePos.x] = null;
+                            }
                     }
                 }
                 destroyedTiles.push(tileToRemove);
@@ -1256,35 +1389,50 @@ class LevelMaker extends Phaser.Scene
     // activate tile's mode when destroyed
     destroyTile(tile)
     {
-        // destroy the background blocks
-        this.destroyBackgroundBlockAtTile(tile);
-
-        // destroy tile based on its mode
-        switch(tile.tileMode) 
+        if (!tile.isLocked)
         {
-            case 'normal':
-                tile.destroy(tile);
-                break;
+            // destroy the background blocks
+            this.destroyBackgroundBlockAtTile(tile);
 
-            case 'horizontal':
-                //this.horizontalTile = tile;
-                this.removeRow(tile);
-                break;
+            // destroy tile based on its mode
+            switch(tile.tileMode) 
+            {
+                case 'normal':
+                    tile.destroy(tile);
+                    break;
+    
+                case 'horizontal':
+                    //this.horizontalTile = tile;
+                    this.removeRow(tile);
+                    break;
+    
+                case 'vertical':
+                    //this.verticalTile = tile;
+                    this.removeColumn(tile);
+                    break;
+                
+                case 'color':
+                    break;
+    
+                case 'cross':
+                    this.destroyCross(tile);
+                    break;
+    
+                case 'air':
+                    break;
+            }
+        }
+        else    // the tile is locked
+        {
+            var tilePos = this.getTilePos(this.tileGrid, tile);
+            this.lockGrid[tilePos.y][tilePos.x].decreaseLevel();
 
-            case 'vertical':
-                //this.verticalTile = tile;
-                this.removeColumn(tile);
-                break;
-            
-            case 'color':
-                break;
-
-            case 'cross':
-                this.destroyCross(tile);
-                break;
-
-            case 'air':
-                break;
+            // unlock if lock lever reach 0
+            if (this.lockGrid[tilePos.y][tilePos.x].level <= 0)
+            {
+                this.lockGrid[tilePos.y][tilePos.x].destroy();
+                tile.isLocked = false;
+            }
         }
     }
 
@@ -1294,7 +1442,7 @@ class LevelMaker extends Phaser.Scene
 
         if (tilePos.x != -1 && tilePos.y != -1 && this.blockGrid[tilePos.y][tilePos.x])
         {
-            this.blockGrid[tilePos.y][tilePos.x].hardness--;
+            this.blockGrid[tilePos.y][tilePos.x].hardnessDecrease();
 
             // execute the block based on its hardness
             switch (this.blockGrid[tilePos.y][tilePos.x].hardness)
