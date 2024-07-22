@@ -1,4 +1,4 @@
-class RailwaySwitchTile {
+class RailwaySwitchTile{
     constructor(row, column, diagonalLeft = false, diagonalRight = false) {
         this.row = row;
         this.column = column;

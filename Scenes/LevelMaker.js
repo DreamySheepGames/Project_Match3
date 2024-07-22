@@ -95,6 +95,12 @@ class LevelMaker extends Phaser.Scene
             }
         }
 
+        // where to put the air block [row, column]
+        this.airPos = [
+            [15, 15], [14, 15], [15, 14], [14, 8],
+            [15, 0], [14, 0], [15, 1], [14, 7],
+            ];
+
         // the grid for the targets that we need to destroy
         this.blockGrid = [];
         for (var i = 0; i < this.levelHeight; i++) {
@@ -131,42 +137,39 @@ class LevelMaker extends Phaser.Scene
 
         this.lockPos = [
             [10, 4], [10, 11],
-            [13, 4], [13, 11],
+            [14, 5], [14, 10],
         ]
 
         this.lockLevel2Pos = [
             [10, 4], [10, 11],
-            [13, 4], [13, 11],
+            [14, 5], [14, 10],
         ]
 
         // for diagonally slide mechanic, (row, column, diagonal slide left, diagonal slide right)
         this.railwaySwitches = [];
-        // the tile "slide out" of the "not-null" tile grid
+        // the tile slides "out" to the "null" tile spot
         this.addRailwaySwitchTile(12, 1, true, false);
         this.addRailwaySwitchTile(12, 14, false, true);
 
         // Bottom left corner, this is just for testing, usually we don't use this because we already got vertical drop
-        this.addRailwaySwitchTile(14, 0, false, true);
-        this.addRailwaySwitchTile(15, 1, false, true);
+        this.addRailwaySwitchTile(0, false, true);
+        this.addRailwaySwitchTile(1, false, true);
 
         // at mid tilegrid
         this.addRailwaySwitchTile(15, 6, false, true);
         this.addRailwaySwitchTile(15, 9, true, false);
 
-        // bottom right corner, this code doesn't work, not because it's broken, it's because we scan the tile grid from left to right
-        // so becaues of that, the vertical drop of the left column is prioritzed over the diagonal slide to left of the right column
+        // bottom right corner, this code doesn't really work, not because it's broken, it actually works, it's just because we scan the tile grid from left to right
+        // so because of that, the vertical drop of the left column is prioritzed over the diagonal slide to left of the right column
         // the diagonal slide to the left above still works though
         this.addRailwaySwitchTile(14, 15, true, false);
         this.addRailwaySwitchTile(15, 14, true, false);
 
-        // lock helper
-
-        // where to put the air block [row, column]
-        this.airPos = [
-            [15, 15], [14, 15], [15, 14], [14, 8],
-            [15, 0], [14, 0], [15, 1], [14, 7],
-        ];
-
+        // railwaySwitch for locks
+        this.addRailwaySwitchTile(11, 5, true, false);
+        this.addRailwaySwitchTile(15, 4, false, true);
+        this.addRailwaySwitchTile(11, 10, false, true);
+        this.addRailwaySwitchTile(15, 11, true, false);
         
         //Create a random data generator to use later
         var seed = Date.now();
@@ -242,6 +245,9 @@ class LevelMaker extends Phaser.Scene
             var pos = this.lockPos[k];
             this.addLock(pos[0], pos[1]);
         }
+
+        // link the locks to the railwaySwitch
+
 
         this.resetTile();
     }
@@ -329,12 +335,6 @@ class LevelMaker extends Phaser.Scene
         //Choose a random tile to add
         //this.tileTypes.length - 2 because we don't want to spawn air tile
         var tileToAdd = this.tileTypes[this.random.integerInRange(0, this.tileTypes.length - 2)];
-
-        if (j == 2 && i == 9) tileToAdd = this.tileTypes[0]
-        if (j == 2 && i == 10) tileToAdd = this.tileTypes[0]
-        if (j == 2 && i == 11) tileToAdd = this.tileTypes[0]
-        if (j == 2 && i == 12) tileToAdd = this.tileTypes[0]
-        if (j == 2 && i == 13) tileToAdd = this.tileTypes[0]
 
         //Add the tile at the correct x position, but add it to the top of the game (so we can slide it in)
         var tile = this.tiles.create((j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                          //x
@@ -499,20 +499,9 @@ class LevelMaker extends Phaser.Scene
 
     checkMatch()
     {
-
-        //Call the getMatches function to check for spots where there is
-        //a run of three or more tiles in a row
-        //matches is a 3D array as shown belown:
-        //          --- matches[0]: arrays of horizontal matches like: [[blue, blue, blue], [red, red, red],...]
-        // matches--|
-        //          --- matches[1]: arrays of vertical matches like: [[yellow, yellow, yellow, yellow], [purple, purple, purple],...]
-
-        var matches = this.getMatches(this.tileGrid);
-
         // We need to check if the 2 tiles we are interacting are special tiles first
         if (this.activeTile2)
         {
-            //No match, the gem is not normal4
             if (this.activeTile1.tileMode !== this.tileMode[0])
             {
                 this.checkSpecialTile(this.activeTile2, this.activeTile1);
@@ -522,6 +511,15 @@ class LevelMaker extends Phaser.Scene
                 this.checkSpecialTile(this.activeTile1, this.activeTile2);
             }
         }
+
+        // Call the getMatches function to check for spots where there is
+        // a run of three or more tiles in a row to destroy or change tile mode
+        // matches is a 3D array as shown belown:
+        //           --- matches[0]: arrays of horizontal matches like: [[blue, blue, blue], [red, red, red],...]
+        //  matches--|
+        //           --- matches[1]: arrays of vertical matches like: [[yellow, yellow, yellow, yellow], [purple, purple, purple],...]
+        var matches = this.getMatches(this.tileGrid);
+
         
         // if there is no matches
         if (matches[0].length == 0 && matches[1].length == 0)
@@ -1108,7 +1106,7 @@ class LevelMaker extends Phaser.Scene
                     if (tile.overlaySprite)
                     {
                         tile.overlaySprite.x = tile.x;
-                        tile.overlaySprite.y = tile.y
+                        tile.overlaySprite.y = tile.y;
                     }
                 }
             }
@@ -1421,6 +1419,8 @@ class LevelMaker extends Phaser.Scene
                 case 'air':
                     break;
             }
+            if (tile.overlaySprite)
+                tile.overlaySprite.destroy();
         }
         else    // the tile is locked
         {
@@ -1428,8 +1428,28 @@ class LevelMaker extends Phaser.Scene
             this.lockGrid[tilePos.y][tilePos.x].decreaseLevel();
 
             // unlock if lock lever reach 0
-            if (this.lockGrid[tilePos.y][tilePos.x].level <= 0)
+            if (this.lockGrid[tilePos.y][tilePos.x] && this.lockGrid[tilePos.y][tilePos.x].level <= 0)
             {
+                // destroy the railwaySwith tiles that works ONLY with this lock, because railwaySwitch tile also works with air block
+                var switchTileDownLeft = this.railwaySwitches.find(switchTile => switchTile.row === tilePos.y + 1 && switchTile.column === tilePos.x - 1);
+
+                // check if there's any air block 2 block away to the left of the lock, because if there is, we can't destroy the down left railwaySwitch tile as shown below
+                //  [air]   [normal]   [LOCK]
+                //             |  
+                //    ----------
+                //    |
+                //    v
+                // [normal] [switch]  [normal]
+                var gotAirBlockHere = this.airPos.some(airTile => airTile[0] === tilePos.y && airTile[1] === tilePos.x - 2)
+
+                if (switchTileDownLeft && !gotAirBlockHere)
+                {
+                    // Remove the switchTile from the railwaySwitches array
+                    this.railwaySwitches = this.railwaySwitches.filter(item => item !== switchTileDownLeft);
+                }
+                // we don't need to destroy the switch tile down right because the vertical drop of the left column is already prioritzed
+
+                // destroy lock and unlock tile
                 this.lockGrid[tilePos.y][tilePos.x].destroy();
                 tile.isLocked = false;
             }
