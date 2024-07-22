@@ -101,6 +101,21 @@ class LevelMaker extends Phaser.Scene
             [15, 0], [14, 0], [15, 1], [14, 7],
             ];
 
+        // array to contain frames
+        this.frameGrid = [];
+        for (var i = 0; i < this.levelHeight; i++) {
+            this.frameGrid[i] = [];
+            for (var j = 0; j < this.levelLength; j++) {
+                this.frameGrid[i][j] = null;
+            }
+        }
+        this.removeFramePos = [
+            [8, 0], [8, 15],
+            [9, 0], [9, 15],
+            [10, 0], [10, 15],
+            [11, 0], [11, 15],
+        ]
+
         // the grid for the targets that we need to destroy
         this.blockGrid = [];
         for (var i = 0; i < this.levelHeight; i++) {
@@ -195,6 +210,38 @@ class LevelMaker extends Phaser.Scene
 
     initTiles()
     {
+        // add frame at the postion that is not air block
+        // row
+        for(var i = this.levelHeight - this.halfRows; i < this.levelHeight; i++)
+        {
+            // column
+            for(var j = 0; j < this.levelLength; j++)
+            {
+                if (!this.airPos.some(pos => pos[0] === i && pos[1] === j)) 
+                {
+                    var frame = this.addFrame(i, j);
+    
+                    // Keep track of the tile's position in our tileGrid
+                    this.frameGrid[i][j] = frame;
+                }
+            }
+        }
+
+        // remove frame at removeFramePos[]
+        // row
+        for(var i = this.levelHeight - this.halfRows; i < this.levelHeight; i++)
+        {
+            // column
+            for(var j = 0; j < this.levelLength; j++)
+            {
+                if (this.frameGrid[i][j] && this.removeFramePos.some(pos => pos[0] === i && pos[1] === j)) 
+                {
+                    this.frameGrid[i][j].destroy();
+                    this.frameGrid[i][j] = null;
+                }
+            }
+        }
+
         // add target/background blocks
         for (var k = 0; k < this.blockPos.length; k++) 
         {
@@ -250,6 +297,17 @@ class LevelMaker extends Phaser.Scene
 
 
         this.resetTile();
+    }
+
+    addFrame(i, j) 
+    {
+        const frame = new Block(this, (j * this.tileWidth) + this.tileWidth / 2 + this.leftMargin,                          //x
+                                       i * this.tileHeight + (this.tileHeight / 2) + this.topMargin,                        //y
+                                    'frame');                                                                               // texture
+        frame.setOrigin(0.5, 0.5);
+        frame.setScale(1);
+        //this.frameGrid[i][j] = frame;
+        return frame;
     }
 
     // the background blocks that player needs to destroy to win the level
@@ -810,7 +868,7 @@ class LevelMaker extends Phaser.Scene
         var horizontalMatches = this.flatten(matches[0]);
         var verticalMatches = this.flatten(matches[1]);
         
-        if (tile.tileMode == this.tileMode[0] && verticalMatches.includes(tile) && horizontalMatches.includes(tile))
+        if (tile.tileMode == this.tileMode[0] && verticalMatches.includes(tile) && horizontalMatches.includes(tile) && !tile.isLocked)
         {
             tile.tileMode = this.tileMode[4];
             
@@ -823,7 +881,7 @@ class LevelMaker extends Phaser.Scene
             }
         }
 
-        if (tempArr.length == 4)
+        if (tempArr.length == 4  && !tile.isLocked)
         {
             if (k == 0)
             {
@@ -852,7 +910,7 @@ class LevelMaker extends Phaser.Scene
         }
 
         // destroy color mode
-        if (tile.tileMode == this.tileMode[0] && tempArr.length >= 5)
+        if (tile.tileMode == this.tileMode[0] && tempArr.length >= 5  && !tile.isLocked)
         {
             tile.tileMode = this.tileMode[3];
             

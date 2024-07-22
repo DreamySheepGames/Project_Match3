@@ -25,6 +25,8 @@ class Load extends Phaser.Scene
         this.load.image('block', 'assets/RoundedBlocks/ground.png');
         this.load.image('block2', 'assets/RoundedBlocks/iceCave.png');
         this.load.image('background1', 'assets/Backgrounds/BG1.jpg');
+
+        this.load.image('frame', 'assets/Frame/frame.png');
     }
 
     create()
