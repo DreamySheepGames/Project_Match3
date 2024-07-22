@@ -19,7 +19,7 @@ class Lock extends Phaser.GameObjects.Sprite {
         switch (this.level)
         {
             case 0:
-                this.destroyLock();
+                //this.destroyLock();
                 break;
 
             case 1:
