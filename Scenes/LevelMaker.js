@@ -95,6 +95,11 @@ class LevelMaker extends Phaser.Scene
             }
         }
 
+        // fill the tile grid from what column to what column
+        // example: if you want to fill all of the column then fillStart = 0, fillEnd = this.levelLength (var j = fillStart; j < fillEnd; j++)
+        this.fillStart = 1;
+        this.fillEnd = this.levelLength - 1;
+
         // where to put the air block [row, column]
         this.airPos = [
             [15, 15], [14, 15], [15, 14], [14, 8],
@@ -273,7 +278,7 @@ class LevelMaker extends Phaser.Scene
         for(var i = 0; i < this.tileGrid.length; i++)
         {
             // column
-            for(var j = 1; j < this.levelLength - 1; j++)
+            for(var j = this.fillStart; j < this.fillEnd; j++)
             {
                 // Add the tile to the game at this grid position where is not for air block
                 if (!this.airPos.some(pos => pos[0] === i && pos[1] === j)) 
@@ -1076,7 +1081,7 @@ class LevelMaker extends Phaser.Scene
         //Check for blank spaces in the grid and add new tiles at that position
         for(var i = 0; i < this.levelHeight; i++)
         {
-            for(var j = 1; j < this.levelLength - 1; j++)
+            for(var j = this.fillStart; j < this.fillEnd; j++)
             {
                 if (this.tileGrid[i][j] == null)
                 {
