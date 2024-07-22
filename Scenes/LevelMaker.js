@@ -1,30 +1,37 @@
 class LevelMaker extends Phaser.Scene
 {
-    constructor()
-    {
-        super("playGame");
+    constructor() {
+        super('playGame');
+    }
+
+    init(data) {
+        this.levelKey = data.levelKey;
     }
 
     create()
     {
+        // json reader
+        var sampleLevel = this.cache.json.get('sampleLevel');
+        var levelData = sampleLevel[this.levelKey.toLowerCase()];
+
         // set tile dimension
-        this.levelHeight = 16;      // only the bottom half of the tile grid is seen and interactable, remember to also modify this.topMargin after you change this
-        this.levelLength = 16;
+        // only the bottom half of the tile grid is seen and interactable, remember to also modify this.topMargin after you change levelHeight
+        this.levelHeight = levelData.gridDimension.levelHeight;
+        this.levelLength = levelData.gridDimension.levelLength;
 
         // set tile postition
-        this.leftMargin = 200;
-        this.topMargin = -400;
+        this.leftMargin = levelData.margin.leftMargin;
+        this.topMargin = levelData.margin.topMargin;
 
         // the size of the gems
-        this.gemSize = 0.92;
+        this.tileSize = levelData.tileSize;
         
         // Gem drop tween ease
-        this.dropTweenEase = 'Cubic.easeOut';
+        this.dropTweenEase = levelData.dropTweenEase;
         //this.dropTweenEase = 'Linear';
 
-        // set time duration for actions and tweening
+        // set time duration for actions and tweening, I don't recommend we change this
         this.durationFill = 700;                           // the time it takes to fill the tile grid
-        //this.durationFill = 350;                           // the time it takes to fill the tile grid
         this.durationSwap = 100;                            // the time it takes to swap 2 gems' position
         this.durationCheckMatch = 200;                      // the time it takes to check for a match-3 after swapping so we can remove the gems
         this.durationCheckMatchAgain = 500;                 // the time it takes to check for a match-3 again after removing the gems
@@ -97,14 +104,11 @@ class LevelMaker extends Phaser.Scene
 
         // fill the tile grid from what column to what column
         // example: if you want to fill all of the column then fillStart = 0, fillEnd = this.levelLength (var j = fillStart; j < fillEnd; j++)
-        this.fillStart = 1;
-        this.fillEnd = this.levelLength - 1;
+        this.fillStart = levelData.fillStart;
+        this.fillEnd = levelData.fillEnd;
 
         // where to put the air block [row, column]
-        this.airPos = [
-            [15, 15], [14, 15], [15, 14], [14, 8],
-            [15, 0], [14, 0], [15, 1], [14, 7],
-            ];
+        this.airPos = levelData.airPos;
 
         // array to contain frames
         this.frameGrid = [];
@@ -114,12 +118,7 @@ class LevelMaker extends Phaser.Scene
                 this.frameGrid[i][j] = null;
             }
         }
-        this.removeFramePos = [
-            [8, 0], [8, 15],
-            [9, 0], [9, 15],
-            [10, 0], [10, 15],
-            [11, 0], [11, 15],
-        ]
+        this.removeFramePos = levelData.removeFramePos;
 
         // the grid for the targets that we need to destroy
         this.blockGrid = [];
@@ -131,19 +130,9 @@ class LevelMaker extends Phaser.Scene
         }
 
         // where to put the block tile that needs to be destroyed to go to the next level [row, column]
-        this.blockPos = [
-            [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
-            [11, 4], [11, 5], [11, 6], [11, 7], [11, 8], [11, 9], [11, 10], [11, 11],
-            [12, 4], [12, 5], [12, 6], [12, 7], [12, 8], [12, 9], [12, 10], [12, 11],
-            [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
-            ];
+        this.blockPos = levelData.blockPos;
 
-        this.blockHardness2Pos = [
-            [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
-            [11, 4],                                                        [11, 11],
-            [12, 4],                                                        [12, 11],
-            [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11],
-            ];
+        this.blockHardness2Pos = levelData.blockHardness2Pos;
 
         
         // grid for the locks of the tile grid so the player can't interact with that tile
@@ -155,15 +144,9 @@ class LevelMaker extends Phaser.Scene
             }
         }
 
-        this.lockPos = [
-            [10, 4], [10, 11],
-            [14, 5], [14, 10],
-        ]
+        this.lockPos = levelData.lockPos;
 
-        this.lockLevel2Pos = [
-            [10, 4], [10, 11],
-            [14, 5], [14, 10],
-        ]
+        this.lockLevel2Pos = levelData.lockLevel2Pos;
 
         // for diagonally slide mechanic, (row, column, diagonal slide left, diagonal slide right)
         this.railwaySwitches = [];
@@ -217,7 +200,7 @@ class LevelMaker extends Phaser.Scene
     {
         // add frame at the postion that is not air block
         // row
-        for(var i = this.levelHeight - this.halfRows; i < this.levelHeight; i++)
+        for(var i = this.levelHeight - Math.floor(this.levelHeight/2); i < this.levelHeight; i++)
         {
             // column
             for(var j = 0; j < this.levelLength; j++)
@@ -298,8 +281,8 @@ class LevelMaker extends Phaser.Scene
             this.addLock(pos[0], pos[1]);
         }
 
-        // link the locks to the railwaySwitch
-
+        // var sampleLevel = this.cache.json.get('sampleLevel');
+        // console.log(sampleLevel.level[0]);
 
         this.resetTile();
     }
@@ -407,7 +390,7 @@ class LevelMaker extends Phaser.Scene
         // this is for special effect like destroying row/column/color/cross
         //tile.overlaySprite;
         tile.isLocked = false;
-        tile.setScale(this.gemSize);
+        tile.setScale(this.tileSize);
 
         //Animate the tile into the correct vertical position
         this.tweens.add({
@@ -493,7 +476,7 @@ class LevelMaker extends Phaser.Scene
                     || this.activeTile1.tileMode === this.tileMode[this.tileMode.length - 1] || this.activeTile2 == null
                     || this.activeTile1.isLocked || this.activeTile2.isLocked)
                     {
-                        this.activeTile1.setScale(this.gemSize);
+                        this.activeTile1.setScale(this.tileSize);
                         this.activeTile1 = null;
                         this.activeTile2 = null;
 
@@ -516,7 +499,7 @@ class LevelMaker extends Phaser.Scene
         //If there are two active tiles, swap their positions
         if (this.activeTile1 && this.activeTile2)
         {
-            this.activeTile1.setScale(this.gemSize);
+            this.activeTile1.setScale(this.tileSize);
             var tile1Pos = {x:(this.activeTile1.x - this.tileWidth / 2) / this.tileWidth, y:(this.activeTile1.y - this.tileHeight / 2) / this.tileHeight};
             var tile2Pos = {x:(this.activeTile2.x - this.tileWidth / 2) / this.tileWidth, y:(this.activeTile2.y - this.tileHeight / 2) / this.tileHeight};
             
@@ -685,7 +668,7 @@ class LevelMaker extends Phaser.Scene
         var groups = [];
 
         //Check for horizontal matches, we only need to check from half row down to bottom row
-        for (var i = tileGrid.length - this.halfRows; i < tileGrid.length; i++)
+        for (var i = tileGrid.length - Math.floor(this.levelHeight/2); i < tileGrid.length; i++)
         {
             var tempArr = tileGrid[i];
             groups = [];
@@ -743,7 +726,7 @@ class LevelMaker extends Phaser.Scene
         {
             //var tempArr = tileGrid[j];
             groups = [];
-            for (j = tileGrid.length - this.halfRows; j < tileGrid.length; j++)
+            for (j = tileGrid.length - Math.floor(this.levelHeight/2); j < tileGrid.length; j++)
             {
                 if(j < tileGrid.length - 2)
                 {
@@ -880,7 +863,7 @@ class LevelMaker extends Phaser.Scene
             if (k == 0)
             {
                 var overlaySprite = this.add.sprite(tile.x, tile.y, 'cross');
-                overlaySprite.setScale(this.gemSize); // If you need to scale it
+                overlaySprite.setScale(this.tileSize); // If you need to scale it
                 overlaySprite.setOrigin(0.5, 0.5);
                 tile.overlaySprite = overlaySprite;
             }
@@ -895,7 +878,7 @@ class LevelMaker extends Phaser.Scene
                     tile.tileMode = this.tileMode[2];   // 1 horizontal match-4 = 1 destroy vertically mode gem
     
                     var overlaySprite = this.add.sprite(tile.x, tile.y, 'column');
-                    overlaySprite.setScale(this.gemSize); // If you need to scale it
+                    overlaySprite.setScale(this.tileSize); // If you need to scale it
                     overlaySprite.setOrigin(0.5, 0.5);
                     tile.overlaySprite = overlaySprite;
                 }
@@ -907,7 +890,7 @@ class LevelMaker extends Phaser.Scene
                     tile.tileMode = this.tileMode[1];   // 1 vertical match-4 = 1 destroy horizontally mode gem
     
                     var overlaySprite = this.add.sprite(tile.x, tile.y, 'row');
-                    overlaySprite.setScale(this.gemSize); // If you need to scale it
+                    overlaySprite.setScale(this.tileSize); // If you need to scale it
                     overlaySprite.setOrigin(0.5, 0.5);
                     tile.overlaySprite = overlaySprite;
                 }
@@ -920,7 +903,7 @@ class LevelMaker extends Phaser.Scene
             tile.tileMode = this.tileMode[3];
             
             var overlaySprite = this.add.sprite(tile.x, tile.y, 'color');
-            overlaySprite.setScale(this.gemSize); // If you need to scale it
+            overlaySprite.setScale(this.tileSize); // If you need to scale it
             overlaySprite.setOrigin(0.5, 0.5);
             tile.overlaySprite = overlaySprite;
         }
