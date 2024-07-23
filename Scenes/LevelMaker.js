@@ -5,14 +5,23 @@ class LevelMaker extends Phaser.Scene
     }
 
     init(data) {
-        this.levelKey = data.levelKey;
+        this.currentLevelIndex = data.levelIndex //|| 1 // Start from level 1 if no data passed
+        this.levelKey = `level${this.currentLevelIndex}`;
+        //this.levelKey = data.levelKey;
     }
 
     create()
     {
+        // not important
+        this.add.text(20, 20, `Level ${this.currentLevelIndex}`);
+
         // json reader
         var sampleLevel = this.cache.json.get('sampleLevel');
         var levelData = sampleLevel[this.levelKey.toLowerCase()];
+        
+        // next level
+        // go to the next level at incrementTargetCount()
+        this.nextLevel = this.currentLevelIndex + 1;
 
         // set tile dimension
         // only the bottom half of the tile grid is seen and interactable, remember to also modify this.topMargin after you change levelHeight
@@ -24,11 +33,23 @@ class LevelMaker extends Phaser.Scene
         this.topMargin = levelData.margin.topMargin;
 
         // the size of the gems
-        this.tileSize = levelData.tileSize;
+        this.tileSize = levelData.tile.tileSize;
         
         // Gem drop tween ease
-        this.dropTweenEase = levelData.dropTweenEase;
+        this.dropTweenEase = levelData.tile.dropTweenEase;
         //this.dropTweenEase = 'Linear';
+
+        // Declare assets that will be used as tiles
+        this.tileTypes = levelData.tile.tileTypes;
+
+        // Declare gem modes:
+        // normal: self explained
+        // horizontal: when removed, destroy the whole row it is moved to
+        // vertical: when removed, destroy the whole column it is moved to
+        // color: when removed, destroy every gem that has the same color with the gem it is swapped with
+        // cross: when rememoved: destroy the whole row AND column it is moved to
+        // BIG NOTE: 'normal' MUST be at first and 'air' MUST be at last
+        this.tileMode = levelData.tile.tileMode;
 
         // set time duration for actions and tweening, I don't recommend we change this
         this.durationFill = 700;                           // the time it takes to fill the tile grid
@@ -40,22 +61,11 @@ class LevelMaker extends Phaser.Scene
 
         this.halfRows = Math.ceil(this.levelHeight / 2);
 
-
         //background
         this.background = this.add.image(config.width/2, config.height/2, 'background1');
         this.background.setOrigin(0.5, 0.5);
         this.background.setScale(1.6);
 
-        // Declare assets that will be used as tiles
-        this.tileTypes = ['blue', 'green', 'red', 'purple', 'cyan', 'yellow', 'air'];
-
-        // Declare gem modes:
-        // normal: self explained
-        // horizontal: when removed, destroy the whole row it is moved to
-        // vertical: when removed, destroy the whole column it is moved to
-        // color: when removed, destroy every gem that has the same color with the gem it is swapped with
-        // cross: when rememoved: destroy the whole row AND column it is moved to
-        this.tileMode = ['normal', 'horizontal', 'vertical', 'color', 'cross', 'air'];
         this.score = 0;
 
         // Keep track which tiles the user is trying to swap
@@ -71,7 +81,7 @@ class LevelMaker extends Phaser.Scene
         // this.verticalTile = null;
 
         // get the width and height of tiles
-        let blueTileTexture = this.textures.get('blue').getSourceImage();
+        let blueTileTexture = this.textures.get(this.tileTypes[0]).getSourceImage();
         this.tileWidth = blueTileTexture.width;
         this.tileHeight = blueTileTexture.height;
 
@@ -96,83 +106,74 @@ class LevelMaker extends Phaser.Scene
 
         this.tileGrid = [];
         for (var i = 0; i < this.levelHeight; i++) {
-            this.tileGrid[i] = [];
-            for (var j = 0; j < this.levelLength; j++) {
-                this.tileGrid[i][j] = null;
-            }
+            this.tileGrid[i] = new Array(this.levelLength).fill(null);
         }
 
         // fill the tile grid from what column to what column
         // example: if you want to fill all of the column then fillStart = 0, fillEnd = this.levelLength (var j = fillStart; j < fillEnd; j++)
-        this.fillStart = levelData.fillStart;
-        this.fillEnd = levelData.fillEnd;
-
-        // where to put the air block [row, column]
-        this.airPos = levelData.airPos;
+        this.fillStart = levelData.filling.fillStart;
+        this.fillEnd = levelData.filling.fillEnd;       
 
         // array to contain frames
         this.frameGrid = [];
         for (var i = 0; i < this.levelHeight; i++) {
-            this.frameGrid[i] = [];
-            for (var j = 0; j < this.levelLength; j++) {
-                this.frameGrid[i][j] = null;
-            }
+            this.frameGrid[i] = new Array(this.levelLength).fill(null)
         }
-        this.removeFramePos = levelData.removeFramePos;
 
         // the grid for the targets that we need to destroy
         this.blockGrid = [];
         for (var i = 0; i < this.levelHeight; i++) {
-            this.blockGrid[i] = [];
-            for (var j = 0; j < this.levelLength; j++) {
-                this.blockGrid[i][j] = null;
-            }
+            this.blockGrid[i] = new Array(this.levelLength).fill(null);
         }
 
-        // where to put the block tile that needs to be destroyed to go to the next level [row, column]
-        this.blockPos = levelData.blockPos;
-
-        this.blockHardness2Pos = levelData.blockHardness2Pos;
-
-        
         // grid for the locks of the tile grid so the player can't interact with that tile
         this.lockGrid = [];
         for (var i = 0; i < this.levelHeight; i++) {
-            this.lockGrid[i] = [];
-            for (var j = 0; j < this.levelLength; j++) {
-                this.lockGrid[i][j] = null;
-            }
+            this.lockGrid[i] = new Array(this.levelLength).fill(null);
         }
 
-        this.lockPos = levelData.lockPos;
-
-        this.lockLevel2Pos = levelData.lockLevel2Pos;
+        // where to put the air block [row, column]
+        this.airPos = levelData.positions.airPos;
+        this.removeFramePos = levelData.positions.removeFramePos;
+        // where to put the block tile that needs to be destroyed to go to the next level [row, column]
+        this.blockPos = levelData.positions.blockPos;
+        this.blockHardness2Pos = levelData.positions.blockHardness2Pos;
+        // where to put the lock
+        this.lockPos = levelData.positions.lockPos;
+        this.lockLevel2Pos = levelData.positions.lockLevel2Pos;
 
         // for diagonally slide mechanic, (row, column, diagonal slide left, diagonal slide right)
         this.railwaySwitches = [];
+
+        if (levelData.railwaySwitches) {
+            levelData.railwaySwitches.forEach(item => {
+                this.addRailwaySwitchTile(item.row, item.column, item.diagonalLeft, item.diagonalRight);
+            });
+        }
+
         // the tile slides "out" to the "null" tile spot
-        this.addRailwaySwitchTile(12, 1, true, false);
-        this.addRailwaySwitchTile(12, 14, false, true);
+        // this.addRailwaySwitchTile(12, 1, true, false);
+        // this.addRailwaySwitchTile(12, 14, false, true);
 
         // Bottom left corner, this is just for testing, usually we don't use this because we already got vertical drop
-        this.addRailwaySwitchTile(0, false, true);
-        this.addRailwaySwitchTile(1, false, true);
+        // this.addRailwaySwitchTile(14, 0, false, true);
+        // this.addRailwaySwitchTile(15, 1, false, true);
 
         // at mid tilegrid
-        this.addRailwaySwitchTile(15, 6, false, true);
-        this.addRailwaySwitchTile(15, 9, true, false);
+        // this.addRailwaySwitchTile(15, 6, false, true);
+        // this.addRailwaySwitchTile(15, 9, true, false);
 
         // bottom right corner, this code doesn't really work, not because it's broken, it actually works, it's just because we scan the tile grid from left to right
         // so because of that, the vertical drop of the left column is prioritzed over the diagonal slide to left of the right column
         // the diagonal slide to the left above still works though
-        this.addRailwaySwitchTile(14, 15, true, false);
-        this.addRailwaySwitchTile(15, 14, true, false);
+        // this.addRailwaySwitchTile(14, 15, true, false);
+        // this.addRailwaySwitchTile(15, 14, true, false);
 
         // railwaySwitch for locks
-        this.addRailwaySwitchTile(11, 5, true, false);
-        this.addRailwaySwitchTile(15, 4, false, true);
-        this.addRailwaySwitchTile(11, 10, false, true);
-        this.addRailwaySwitchTile(15, 11, true, false);
+        // this.addRailwaySwitchTile(11, 5, true, false);
+        // this.addRailwaySwitchTile(15, 4, false, true);
+        // this.addRailwaySwitchTile(11, 10, false, true);
+        // this.addRailwaySwitchTile(15, 11, true, false);
         
         //Create a random data generator to use later
         var seed = Date.now();
@@ -1121,6 +1122,10 @@ class LevelMaker extends Phaser.Scene
     {
         // 1 gem = 3 points
         this.targetCountLabel.text = "TARGET: " + this.targetCount + "/" + array.length;
+        if (this.targetCount == array.length)
+        {
+            this.scene.start('playGame', { levelIndex: this.nextLevel });
+        }
     }
 
     // this function is to make the drop gem look more stable
@@ -1520,9 +1525,9 @@ class LevelMaker extends Phaser.Scene
 
                 case 0:
                     this.targetCount++;
-                    this.incrementTargetCount(this.blockPos);
                     this.blockGrid[tilePos.y][tilePos.x].destroy();
                     this.blockGrid[tilePos.y][tilePos.x] = null;
+                    this.incrementTargetCount(this.blockPos);
                     break;
             }
         }

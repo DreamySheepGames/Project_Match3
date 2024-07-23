@@ -1,6 +1,54 @@
 {
     "level1": {
         "gridDimension": {
+            "levelHeight": 10,
+            "levelLength": 9
+        },
+
+        "filling": {
+            "fillStart": 0,
+            "fillEnd": 9
+        },
+
+        "margin": {
+            "leftMargin": 450,
+            "topMargin": -200
+        },
+
+        "tile": {
+            "tileSize": 0.92,
+            "dropTweenEase": "Cubic.easeOut",
+            "tileTypes": ["blue", "green", "red", "purple", "cyan", "yellow", "air"],
+            "tileMode": ["normal", "horizontal", "vertical", "color", "cross", "air"]
+        },
+
+        "positions": {
+            "airPos": [
+            ],
+    
+            "removeFramePos": [
+            ],
+    
+            "blockPos": [
+                [7, 4]
+            ],
+    
+            "blockHardness2Pos": [
+            ],
+    
+            "lockPos": [
+            ],
+    
+            "lockLevel2Pos": [
+            ]
+        },
+
+        "railwaySwitches": [
+        ]
+    },
+
+    "level2": {
+        "gridDimension": {
             "levelHeight": 16,
             "levelLength": 16
         },
@@ -10,49 +58,70 @@
             "topMargin": -400
         },
 
-        "tileSize": 0.92,
-        "dropTweenEase": "Cubic.easeOut",
+        "tile": {
+            "tileSize": 0.92,
+            "dropTweenEase": "Cubic.easeOut",
+            "tileTypes": ["blue", "green", "red", "purple", "cyan", "yellow", "air"],
+            "tileMode": ["normal", "horizontal", "vertical", "color", "cross", "air"]
+        },
 
-        "fillStart": 1,
-        "fillEnd": 15,
+        "filling": {
+            "fillStart": 1,
+            "fillEnd": 15
+        },
 
-        "airPos": [
-            [15, 15], [14, 15], [15, 14], [14, 8],
-            [15, 0], [14, 0], [15, 1], [14, 7]
-        ],
+        "positions": {
+            "airPos": [
+                [15, 15], [14, 15], [15, 14], [14, 8],
+                [15, 0], [14, 0], [15, 1], [14, 7]
+            ],
+    
+            "removeFramePos": [
+                [8, 0], [8, 15],
+                [9, 0], [9, 15],
+                [10, 0], [10, 15],
+                [11, 0], [11, 15]
+            ],
+    
+            "blockPos": [
+                [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
+                [11, 4], [11, 5], [11, 6], [11, 7], [11, 8], [11, 9], [11, 10], [11, 11],
+                [12, 4], [12, 5], [12, 6], [12, 7], [12, 8], [12, 9], [12, 10], [12, 11],
+                [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11]
+            ],
+    
+            "blockHardness2Pos": [
+                [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
+                [11, 4],                                                        [11, 11],
+                [12, 4],                                                        [12, 11],
+                [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11]
+            ],
+    
+            "lockPos": [
+                [10, 4], [10, 11],
+                [13, 4], [13, 11]
+            ],
+    
+            "lockLevel2Pos": [
+                [10, 4], [10, 11],
+                [13, 4], [13, 11]
+            ]
+        },
 
-        "removeFramePos": [
-            [8, 0], [8, 15],
-            [9, 0], [9, 15],
-            [10, 0], [10, 15],
-            [11, 0], [11, 15]
-        ],
+        "railwaySwitches": [
+            {"row": 12, "column": 1, "diagonalLeft": true, "diagonalRight": false},
+            {"row": 12, "column": 14, "diagonalLeft": false, "diagonalRight": true},
 
-        "blockPos": [
-            [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
-            [11, 4], [11, 5], [11, 6], [11, 7], [11, 8], [11, 9], [11, 10], [11, 11],
-            [12, 4], [12, 5], [12, 6], [12, 7], [12, 8], [12, 9], [12, 10], [12, 11],
-            [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11]
-        ],
+            {"row": 14, "column": 0, "diagonalLeft": false, "diagonalRight": true},
+            {"row": 15, "column": 1, "diagonalLeft": false, "diagonalRight": true},
 
-        "blockHardness2Pos": [
-            [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
-            [11, 4],                                                        [11, 11],
-            [12, 4],                                                        [12, 11],
-            [13, 4], [13, 5], [13, 6], [13, 7], [13, 8], [13, 9], [13, 10], [13, 11]
-        ],
+            {"row": 15, "column": 6, "diagonalLeft": false, "diagonalRight": true},
+            {"row": 15, "column": 9, "diagonalLeft": true, "diagonalRight": false},
 
-        "lockPos": [
-            [10, 4], [10, 11],
-            [14, 5], [14, 10]
-        ],
-
-        "lockLevel2Pos": [
-            [10, 4], [10, 11],
-            [14, 5], [14, 10]
+            {"row": 11, "column": 5, "diagonalLeft": true, "diagonalRight": false},
+            {"row": 11, "column": 10, "diagonalLeft": false, "diagonalRight": true},
+            {"row": 14, "column": 5, "diagonalLeft": true, "diagonalRight": false},
+            {"row": 14, "column": 10, "diagonalLeft": false, "diagonalRight": true}
         ]
-    },
-
-    "level2": {},
-    "level3": {}
+    }
 }
