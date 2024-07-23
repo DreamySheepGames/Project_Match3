@@ -35,6 +35,7 @@ class Load extends Phaser.Scene
 
         // UI
         this.load.image("button", "assets/UI/blue button.png");
+        this.load.image("buttonPressed", "assets/UI/blue button pressed.png");
 
         // json
         this.load.json("sampleLevel", "LevelConfig/LevelSample.json");

@@ -21,25 +21,10 @@ class Menu extends Phaser.Scene
         }).setOrigin(0.5, 0.5);
 
         // buttons
-        var btnPlay = this.add.image(config.width/2, 300, "button")
-        .setInteractive()
-        .setOrigin(0.5, 0.5)
-        .setScale(2)
-        .on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+
+        const playBtn = new CustomButton(this, config.width/2, 300, "button", "buttonPressed", "PLAY");
+        playBtn.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
             this.scene.start("levelSelect");
         })
-
-        // Create text and position it over the button
-        var btnPlayText = this.add.text(0, 0, "PLAY", {
-            fontSize: '32px',
-            color: '#000000'
-        }).setOrigin(0.5, 0.5);
-
-        // Group the button and text together if you need to move or manipulate them together
-        var playButtonGroup = this.add.container(0, 0, [btnPlay, btnPlayText]);
-
-        // Optional: If you want to add some offset to the text position to align it perfectly
-        btnPlayText.setX(btnPlay.x);
-        btnPlayText.setY(btnPlay.y - 10);
     }
 }

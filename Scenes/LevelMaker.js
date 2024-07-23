@@ -195,6 +195,12 @@ class LevelMaker extends Phaser.Scene
         this.targetCount = 0;
         this.createTargetCount();
         this.incrementTargetCount(this.blockPos);
+
+        // buttons
+        const menuBtn = new CustomButton(this, 80, 650, "button", "buttonPressed", "MENU");
+        menuBtn.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+            this.scene.start("menu");
+        })
     }
 
     initTiles()
@@ -1451,12 +1457,10 @@ class LevelMaker extends Phaser.Scene
                     break;
     
                 case 'horizontal':
-                    //this.horizontalTile = tile;
                     this.removeRow(tile);
                     break;
     
                 case 'vertical':
-                    //this.verticalTile = tile;
                     this.removeColumn(tile);
                     break;
                 
