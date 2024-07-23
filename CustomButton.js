@@ -1,13 +1,13 @@
 class CustomButton extends Phaser.GameObjects.Container
 {
-    constructor(scene, x, y, upTexture, overTexture, buttonText)
+    constructor(scene, x, y, upTexture, overTexture, buttonText, textSize)
     {
         super(scene, x, y)
         this.scene = scene;
         this.upImage = scene.add.image(x, y, upTexture);
         this.overImage = scene.add.image(x, y, overTexture);
         this.scene.add.text(x, y - 8, buttonText, {
-                fontSize: '32px',
+                fontSize: `${textSize}px`,
                 color: '#000000'
             }).setOrigin(0.5, 0.5);
 

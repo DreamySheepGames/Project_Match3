@@ -197,7 +197,12 @@ class LevelMaker extends Phaser.Scene
         this.incrementTargetCount(this.blockPos);
 
         // buttons
-        const menuBtn = new CustomButton(this, 80, 650, "button", "buttonPressed", "MENU");
+        const restartLvBtn = new CustomButton(this, 80, 570, "button", "buttonPressed", "RESTART LV", 18);
+        restartLvBtn.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
+            this.scene.start('playGame', { levelIndex: this.currentLevelIndex });
+        })
+
+        const menuBtn = new CustomButton(this, 80, 650, "button", "buttonPressed", "MENU", 32);
         menuBtn.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
             this.scene.start("menu");
         })

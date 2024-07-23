@@ -22,7 +22,7 @@ class Menu extends Phaser.Scene
 
         // buttons
 
-        const playBtn = new CustomButton(this, config.width/2, 300, "button", "buttonPressed", "PLAY");
+        const playBtn = new CustomButton(this, config.width/2, 300, "button", "buttonPressed", "PLAY", 32);
         playBtn.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
             this.scene.start("levelSelect");
         })
