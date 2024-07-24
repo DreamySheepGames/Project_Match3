@@ -1139,9 +1139,26 @@ class LevelMaker extends Phaser.Scene
     {
         // 1 gem = 3 points
         this.targetCountLabel.text = "TARGET: " + this.targetCount + "/" + array.length;
+
+        // Player win
         if (this.targetCount == array.length)
         {
-            this.scene.start('playGame', { levelIndex: this.nextLevel });
+            this.finishingLevel();
+        }
+    }
+
+    finishingLevel()
+    {
+        switch (this.currentLevelIndex)
+        {
+            // currently the json file is containing 2 level, so we only has 2 levels
+            case 2:
+                this.scene.start("menu");
+                break;
+
+            default:
+                this.scene.start("playGame", { levelIndex: this.nextLevel });
+                break;
         }
     }
 
