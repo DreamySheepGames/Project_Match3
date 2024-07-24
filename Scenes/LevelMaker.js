@@ -297,6 +297,7 @@ class LevelMaker extends Phaser.Scene
         // console.log(sampleLevel.level[0]);
 
         this.resetTile();
+        this.fillTile();
     }
 
     addFrame(i, j) 
@@ -810,7 +811,12 @@ class LevelMaker extends Phaser.Scene
                             }
                             else
                                 if (!tile.isLocked)
+                                {
                                     this.destroyTile(tile);
+                                }
+
+                            this.activeTile1 = null;
+                            this.activeTile2 = null;
                         }
 
                         // this is where we check if the tile will turn from normal mode to other modes
@@ -1433,7 +1439,7 @@ class LevelMaker extends Phaser.Scene
                             this.destroyTile(tileToRemove);     // lock from 1 -> 0: tileToRemove.isLock = false;
                             // remove from grid
                             this.tileGrid[row][tilePos.x] = null;
-                            }
+                        }
                     }
                 }
                 destroyedTiles.push(tileToRemove);
