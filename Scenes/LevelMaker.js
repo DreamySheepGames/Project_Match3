@@ -834,6 +834,27 @@ class LevelMaker extends Phaser.Scene
 
                         // if there are special matches without player's interaction
                         // the first tile's mode in the matches[] is changed
+                        // bug: destroy cross sometime doesn't created, so we need to check and create it here
+                        var horizontalMatches = this.flatten(matches[0]);
+                        var verticalMatches = this.flatten(matches[1]);
+                        
+                        if ((!this.activeTile1 || !this.activeTile2) 
+                            && tile.tileMode == this.tileMode[0] 
+                            && verticalMatches.includes(tile) 
+                            && horizontalMatches.includes(tile) 
+                            && !tile.isLocked)
+                        {
+                            tile.tileMode = this.tileMode[4];
+                            
+                            if (k == 0)
+                            {
+                                var overlaySprite = this.add.sprite(tile.x, tile.y, 'cross');
+                                overlaySprite.setScale(this.tileSize); // If you need to scale it
+                                overlaySprite.setOrigin(0.5, 0.5);
+                                tile.overlaySprite = overlaySprite;
+                            }
+                        }
+
                         if ((!this.activeTile1 || !this.activeTile2) && tile == tempArr[0])
                         {
                             this.changeTileMode(tile, tempArr, matches, k);
